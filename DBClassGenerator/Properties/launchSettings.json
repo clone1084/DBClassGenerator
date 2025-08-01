@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "DBClassGenerator": {
+      "commandName": "Project",
+      "commandLineArgs": "-cs \"Data Source = (DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=172.16.11.218)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=ROEN)));User ID= WMS_ROEN; Password = tabe;Pooling=false;\"\r\n-ns DBDataLibrary.Tables\r\n-out \"C:\\Users\\Beta80\\source\\repos\\DBClassGenerator\\DBDataLibrary\\Tables\"\r\n-tn \"MFC_CONV%\"\r\n-gc N"
+    }
+  }
+}
