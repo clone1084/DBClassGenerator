@@ -308,13 +308,18 @@ namespace DBDataLibrary.CRUD
         {
             if (HasTableTypeFlag(TableTypes.Cached))
             {
-                lock (_cacheLock)
+                _cacheLock.EnterReadLock();
+                try
                 {
                     var cachedItem = cachedEntities.ToList().FirstOrDefault(e => e.GetKeyValues().SequenceEqual(keyValues));
                     if (cachedItem != null)
                     {
                         return cachedItem;
                     }
+                }
+                finally
+                {
+                    _cacheLock.ExitReadLock();
                 }
             }
 
@@ -330,15 +335,12 @@ namespace DBDataLibrary.CRUD
 
             var kvpDict = keyValues.ToDictionary(kv => kv.Key, kv => kv.Value);
 
-            for (int i = 0; i < keyProps.Count; i++)
+            foreach (var keyProp in keyProps)
             {
-                var colName = GetColumnName(keyProps[i]);
+                var colName = GetColumnName(keyProp);
                 if (!kvpDict.Keys.Contains(colName, StringComparer.OrdinalIgnoreCase))
-                {
                     throw new ArgumentException($"Key value for '{colName}' is missing in the provided key values.");
-                }
 
-                // Abbino dinamicamente il valore della chiave al parametro corretto
                 var param = cmd.CreateParameter();
                 param.ParameterName = ":" + colName;
                 param.Value = kvpDict[colName];
@@ -353,19 +355,23 @@ namespace DBDataLibrary.CRUD
 
             if (HasTableTypeFlag(TableTypes.Cached))
             {
-                lock (_cacheLock)
+                _cacheLock.EnterWriteLock();
+                try
                 {
-
-                    // Aggiungo l'istanza caricata alla cache
                     if (!cachedEntities.Contains(loadedInstance))
                     {
                         cachedEntities.Add(loadedInstance);
                     }
                 }
+                finally
+                {
+                    _cacheLock.ExitWriteLock();
+                }
             }
 
             return loadedInstance;
         }
+
 
         private static TClass ReadData(IDataReader reader)
         {
@@ -407,24 +413,33 @@ namespace DBDataLibrary.CRUD
         {
             if (HasTableTypeFlag(TableTypes.Cached))
             {
-                lock (_cacheLock)
+                _cacheLock.EnterUpgradeableReadLock();
+                try
                 {
                     if (reloadCache)
                     {
-                        // If we are reloading the cache, we clear the cached entities
-                        cachedEntities.Clear();
+                        _cacheLock.EnterWriteLock();
+                        try
+                        {
+                            cachedEntities.Clear();
+                        }
+                        finally
+                        {
+                            _cacheLock.ExitWriteLock();
+                        }
                     }
 
                     if (cachedEntities.Any())
                     {
-                        // If cache is not empty, we will return the cached entities
                         return cachedEntities.ToList();
                     }
-
-                    // If cache is empty, we will load from the database
-                    // and we will cache all the results
-                    whereFilter = string.Empty;
                 }
+                finally
+                {
+                    _cacheLock.ExitUpgradeableReadLock();
+                }
+                // if cache is empty or cleared, proceed to reload from DB
+                whereFilter = string.Empty;
             }
 
             var sql = $"SELECT * FROM {GetTableName()}";
@@ -449,16 +464,19 @@ namespace DBDataLibrary.CRUD
 
             if (HasTableTypeFlag(TableTypes.Cached))
             {
-                lock (_cacheLock)
+                _cacheLock.EnterWriteLock();
+                try
                 {
-
-
-                    // Cache all the loaded entities
                     cachedEntities = resultList;
+                }
+                finally
+                {
+                    _cacheLock.ExitWriteLock();
                 }
             }
 
             return resultList;
         }
+
     }
 }
