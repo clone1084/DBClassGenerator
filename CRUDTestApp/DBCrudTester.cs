@@ -100,17 +100,7 @@ namespace CRUDTestApp
                         // INSERT
                         if ((tableType & TableTypes.Insertable) == TableTypes.Insertable)
                         {
-                            bool inserted = crudInstance.Insert(conn);
-                            LogResult(inserted, $"    Insert");
-                            if (inserted)
-                            {
-                                Dictionary<string, object> kvp = crudInstance.GetKeyValues();
-                                var keys = string.Join(", ", kvp.Select(k =>
-                                {
-                                    return $"{k.Key} = {k.Value}";
-                                }));
-                                LogInfo($"      -Inserted {type.Name}: {keys}");
-                            }
+                            InsertTest(conn, type, crudInstance);
                         }
                         else
                         {
@@ -121,21 +111,7 @@ namespace CRUDTestApp
 
                         if ((tableType & TableTypes.Updatable) == TableTypes.Updatable)
                         {
-                            PropertyInfo modProp = null;
-                            foreach (var prop in type.GetProperties())
-                            {
-                                if (prop.CanWrite && prop.PropertyType == typeof(string))
-                                {
-                                    modProp = prop;
-                                    break;
-                                }
-                            }
-                            if (modProp != null)
-                            {
-                                modProp.SetValue(crudInstance, "TestValue");
-                                bool updated = crudInstance.Update(conn);
-                                LogResult(updated, "    Update");
-                            }
+                            UpdateTest(conn, type, crudInstance);
                         }
                         else
                         {
@@ -145,25 +121,13 @@ namespace CRUDTestApp
                         // LOAD
                         // Will be executed for all types
                         {
-                            var crudBaseGeneric = typeof(ACrudBase<>).MakeGenericType(type); // this works because ACrudBase<T> is open
-                            var method = crudBaseGeneric.GetMethod("LoadAll", BindingFlags.Public | BindingFlags.Static);
-                            if (method != null)
-                            {
-                                var result = method.Invoke(null, new object[] { conn, "", false }); // second param is whereFilter, third parameter il cache loading
-                                var loadedList = ((IEnumerable<object>)result)?.ToList();
-                                LogResult(loadedList?.Count ?? 0, "    Load");
-                            }
-                            else
-                            {
-                                LogWarning($"    LoadAll not found for type {type.Name}");
-                            }
+                            LoadTest(conn, type, tableType);
                         }
 
                         // DELETE
                         if ((tableType & TableTypes.Deletable) == TableTypes.Deletable)
                         {
-                            bool deleted = crudInstance.Delete(conn);
-                            LogResult(deleted, "    Delete");
+                            DeleteTest(conn, crudInstance);
                         }
                         else
                         {
@@ -184,6 +148,110 @@ namespace CRUDTestApp
                 conn.Rollback();
                 LogInfo("DB rolled back");
                 LogInfo();
+            }
+        }
+
+        private void DeleteTest(Oracle.ManagedDataAccess.Client.OracleConnection conn, dynamic crudInstance)
+        {
+            bool deleted = crudInstance.Delete(conn);
+            LogResult(deleted, "    Delete");
+        }
+
+        private void InsertTest(Oracle.ManagedDataAccess.Client.OracleConnection conn, Type type, dynamic crudInstance)
+        {
+            bool inserted = crudInstance.Insert(conn);
+            LogResult(inserted, $"    Insert");
+            if (inserted)
+            {
+                Dictionary<string, object> kvp = crudInstance.GetKeyValues();
+                var keys = string.Join(", ", kvp.Select(k =>
+                {
+                    return $"{k.Key} = {k.Value}";
+                }));
+                LogInfo($"      -Inserted {type.Name}: {keys}");
+            }
+        }
+
+        private void UpdateTest(Oracle.ManagedDataAccess.Client.OracleConnection conn, Type type, dynamic crudInstance)
+        {
+            PropertyInfo modProp = null;
+            foreach (var prop in type.GetProperties())
+            {
+                if (prop.CanWrite && prop.PropertyType == typeof(string))
+                {
+                    modProp = prop;
+                    break;
+                }
+            }
+            if (modProp != null)
+            {
+                modProp.SetValue(crudInstance, "TestValue");
+                bool updated = crudInstance.Update(conn);
+                LogResult(updated, "    Update");
+            }
+        }
+
+        private void LoadTest(Oracle.ManagedDataAccess.Client.OracleConnection conn, Type type, TableTypes tableType)
+        {
+            var crudBaseGeneric = typeof(ACrudBase<>).MakeGenericType(type); // this works because ACrudBase<T> is open
+            var method = crudBaseGeneric.GetMethod("LoadAll", BindingFlags.Public | BindingFlags.Static);
+            if (method != null)
+            {
+                DateTime dtStart = DateTime.Now;
+                var result = method.Invoke(null, new object[] { conn, "", false }); // second param is whereFilter, third parameter il cache loading
+                var loadedList = ((IEnumerable<object>)result)?.ToList();
+                LogResult(loadedList?.Count ?? 0, "    Load");
+                LogInfo($"    Load took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
+            }
+            else
+            {
+                LogWarning($"    LoadAll not found for type {type.Name}");
+            }
+
+            // CACHED Table test
+            if ((tableType & TableTypes.Cached) == TableTypes.Cached)
+            {
+                if (method != null)
+                {
+                    // Provo un accesso alla cache
+                    DateTime dtStart = DateTime.Now;
+                    var result = method.Invoke(null, new object[] { conn, "", false }); // second param is whereFilter, third parameter il cache loading
+                    var loadedList = ((IEnumerable<object>)result)?.ToList();
+                    LogResult(loadedList?.Count ?? 0, "    CacheLoad");
+                    LogInfo($"    CacheLoad took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
+
+                    // Provo un reload della cache
+                    dtStart = DateTime.Now;
+                    result = method.Invoke(null, new object[] { conn, "", true }); // second param is whereFilter, third parameter il cache loading
+                    loadedList = ((IEnumerable<object>)result)?.ToList();
+                    LogResult(loadedList?.Count ?? 0, "    CacheReLoad");
+                    LogInfo($"    CacheReLoad took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
+
+                    // Provo un accesso concorrente alla cache
+                    LogInfo("    Avvio test di accesso concorrente alla cache...");
+                    var taskReload = Task.Run(() =>
+                    {
+                        // Reload della cache
+                        DateTime dtStart = DateTime.Now;
+                        var result = method.Invoke(null, new object[] { conn, "", true });
+                        var loadedList = ((IEnumerable<object>)result)?.ToList();
+                        LogResult(loadedList?.Count ?? 0, "    Task CacheReLoad");
+                        LogInfo($"    CacheReLoad took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
+                    });
+
+                    var taskAccess = Task.Run(() =>
+                    {
+                        // Accesso ai dati (senza reload)
+                        DateTime dtStart = DateTime.Now;
+                        var result = method.Invoke(null, new object[] { conn, "", false });
+                        var loadedList = ((IEnumerable<object>)result)?.ToList();
+                        LogResult(loadedList?.Count ?? 0, "    Task CacheAccess");
+                        LogInfo($"    CacheLoad took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
+                    });
+
+                    Task.WhenAll(taskReload, taskAccess).Wait();
+                    LogInfo("    Test di accesso concorrente completato.");
+                }
             }
         }
 
