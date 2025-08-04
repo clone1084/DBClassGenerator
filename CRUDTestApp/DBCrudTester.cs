@@ -47,7 +47,7 @@ namespace CRUDTestApp
                 conn.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
                 LogInfo("Transaction started. All operations will be rolled back at the end.");
 
-                var baseType = typeof(DBDataLibrary.CRUD.ACrudBase<,>);
+                var baseType = typeof(DBDataLibrary.CRUD.ACrudBase<>);
 
                 // Cerca tutte le classi concrete che ereditano da ACrudBase<TData>
                 List<Type> typesToTest = AppDomain.CurrentDomain.GetAssemblies()
@@ -93,7 +93,7 @@ namespace CRUDTestApp
 
                         TableTypes tableType = tableTypeAttribute.TableType;
 
-                        Log2Colors($"    TableType", $"{tableType}", secondColor: ConsoleColor.White);
+                        Log2Colors($"    TableName", $"{tableType}", secondColor: ConsoleColor.White);
 
                         // CONDITIONAL EXECUTION BASED ON ATTRIBUTE FLAGS
 
@@ -121,10 +121,8 @@ namespace CRUDTestApp
 
                         if ((tableType & TableTypes.Updatable) == TableTypes.Updatable)
                         {
-                            var data = crudInstance.GetData();
-                            var dataType = data.GetType();
                             PropertyInfo modProp = null;
-                            foreach (var prop in dataType.GetProperties())
+                            foreach (var prop in type.GetProperties())
                             {
                                 if (prop.CanWrite && prop.PropertyType == typeof(string))
                                 {
@@ -134,7 +132,7 @@ namespace CRUDTestApp
                             }
                             if (modProp != null)
                             {
-                                modProp.SetValue(data, "TestValue");
+                                modProp.SetValue(crudInstance, "TestValue");
                                 bool updated = crudInstance.Update(conn);
                                 LogResult(updated, "    Update");
                             }
@@ -147,8 +145,18 @@ namespace CRUDTestApp
                         // LOAD
                         // Will be executed for all types
                         {
-                            var loaded = crudInstance.LoadAll(conn);
-                            LogResult(loaded.Count, "    Load");
+                            var crudBaseGeneric = typeof(ACrudBase<>).MakeGenericType(type); // this works because ACrudBase<T> is open
+                            var method = crudBaseGeneric.GetMethod("LoadAll", BindingFlags.Public | BindingFlags.Static);
+                            if (method != null)
+                            {
+                                var result = method.Invoke(null, new object[] { conn, "" }); // second param is whereFilter
+                                var loadedList = ((IEnumerable<object>)result)?.ToList();
+                                LogResult(loadedList?.Count ?? 0, "    Load");
+                            }
+                            else
+                            {
+                                LogWarning($"    LoadAll not found for type {type.Name}");
+                            }
                         }
 
                         // DELETE

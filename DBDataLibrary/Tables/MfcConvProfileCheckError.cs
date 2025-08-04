@@ -1,5 +1,8 @@
+using System;
+using System.ComponentModel.DataAnnotations;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
+
 namespace DBDataLibrary.Tables
 {
     //  --------------------------------------------------
@@ -7,10 +10,42 @@ namespace DBDataLibrary.Tables
     // --                DO NOT MODIFY!!!                --
     // -- ANY CHANGE WILL BE LOST AT THE NEXT GENERATION --
     //  --------------------------------------------------
-    [TableType(TableTypes.Undefined)]
-    public partial class MfcConvProfileCheckError : ACrudBase<MfcConvProfileCheckError, MfcConvProfileCheckError_data>
+    [TableName("MFC_CONV_PROFILE_CHECK_ERROR")]
+    public partial class MfcConvProfileCheckError : ACrudBase<MfcConvProfileCheckError>
     {
         public MfcConvProfileCheckError() : base() { }
-        public override string TableName => "MFC_CONV_PROFILE_CHECK_ERROR";
+        
+        [NonSerialized] private int _cdError = default(int);
+        [ColumnName("CD_ERROR")]
+        [Required]
+        public int CdError
+        {
+            get => _cdError;
+            set
+            {
+                if (!Equals(_cdError, value))
+                {
+                    _cdError = value;
+                    AddModifiedProperty(nameof(CdError));
+                }
+            }
+        }
+
+        [NonSerialized] private string _dscError = "";
+        [ColumnName("DSC_ERROR")]
+        [Required]
+        public string DscError
+        {
+            get => _dscError;
+            set
+            {
+                if (!Equals(_dscError, value))
+                {
+                    _dscError = value;
+                    AddModifiedProperty(nameof(DscError));
+                }
+            }
+        }
+
     }
 }

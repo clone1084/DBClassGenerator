@@ -1,5 +1,8 @@
+using System;
+using System.ComponentModel.DataAnnotations;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
+
 namespace DBDataLibrary.Tables
 {
     //  --------------------------------------------------
@@ -7,10 +10,253 @@ namespace DBDataLibrary.Tables
     // --                DO NOT MODIFY!!!                --
     // -- ANY CHANGE WILL BE LOST AT THE NEXT GENERATION --
     //  --------------------------------------------------
-    [TableType(TableTypes.Undefined)]
-    public partial class MfcConvMultipleConveyor : ACrudBase<MfcConvMultipleConveyor, MfcConvMultipleConveyor_data>
+    [TableName("MFC_CONV_MULTIPLE_CONVEYOR")]
+    public partial class MfcConvMultipleConveyor : ACrudBase<MfcConvMultipleConveyor>
     {
         public MfcConvMultipleConveyor() : base() { }
-        public override string TableName => "MFC_CONV_MULTIPLE_CONVEYOR";
+        
+        [NonSerialized] private string _item1 = "";
+        [ColumnName("ITEM_1")]
+        [Required]
+        public string Item1
+        {
+            get => _item1;
+            set
+            {
+                if (!Equals(_item1, value))
+                {
+                    _item1 = value;
+                    AddModifiedProperty(nameof(Item1));
+                }
+            }
+        }
+
+        [NonSerialized] private string _item2 = "";
+        [ColumnName("ITEM_2")]
+        [Required]
+        public string Item2
+        {
+            get => _item2;
+            set
+            {
+                if (!Equals(_item2, value))
+                {
+                    _item2 = value;
+                    AddModifiedProperty(nameof(Item2));
+                }
+            }
+        }
+
+        [NonSerialized] private string _item3;
+        [ColumnName("ITEM_3")]
+        public string Item3
+        {
+            get => _item3;
+            set
+            {
+                if (!Equals(_item3, value))
+                {
+                    _item3 = value;
+                    AddModifiedProperty(nameof(Item3));
+                }
+            }
+        }
+
+        [NonSerialized] private string _item4;
+        [ColumnName("ITEM_4")]
+        public string Item4
+        {
+            get => _item4;
+            set
+            {
+                if (!Equals(_item4, value))
+                {
+                    _item4 = value;
+                    AddModifiedProperty(nameof(Item4));
+                }
+            }
+        }
+
+        [NonSerialized] private string _item5;
+        [ColumnName("ITEM_5")]
+        public string Item5
+        {
+            get => _item5;
+            set
+            {
+                if (!Equals(_item5, value))
+                {
+                    _item5 = value;
+                    AddModifiedProperty(nameof(Item5));
+                }
+            }
+        }
+
+        [NonSerialized] private string _item6;
+        [ColumnName("ITEM_6")]
+        public string Item6
+        {
+            get => _item6;
+            set
+            {
+                if (!Equals(_item6, value))
+                {
+                    _item6 = value;
+                    AddModifiedProperty(nameof(Item6));
+                }
+            }
+        }
+
+        [NonSerialized] private string _item7;
+        [ColumnName("ITEM_7")]
+        public string Item7
+        {
+            get => _item7;
+            set
+            {
+                if (!Equals(_item7, value))
+                {
+                    _item7 = value;
+                    AddModifiedProperty(nameof(Item7));
+                }
+            }
+        }
+
+        [NonSerialized] private string _item8;
+        [ColumnName("ITEM_8")]
+        public string Item8
+        {
+            get => _item8;
+            set
+            {
+                if (!Equals(_item8, value))
+                {
+                    _item8 = value;
+                    AddModifiedProperty(nameof(Item8));
+                }
+            }
+        }
+
+        [NonSerialized] private string _itemDest = "";
+        [ColumnName("ITEM_DEST")]
+        [Required]
+        public string ItemDest
+        {
+            get => _itemDest;
+            set
+            {
+                if (!Equals(_itemDest, value))
+                {
+                    _itemDest = value;
+                    AddModifiedProperty(nameof(ItemDest));
+                }
+            }
+        }
+
+        [NonSerialized] private string _itemPre1;
+        [ColumnName("ITEM_PRE1")]
+        public string ItemPre1
+        {
+            get => _itemPre1;
+            set
+            {
+                if (!Equals(_itemPre1, value))
+                {
+                    _itemPre1 = value;
+                    AddModifiedProperty(nameof(ItemPre1));
+                }
+            }
+        }
+
+        [NonSerialized] private string _itemPre2;
+        [ColumnName("ITEM_PRE2")]
+        public string ItemPre2
+        {
+            get => _itemPre2;
+            set
+            {
+                if (!Equals(_itemPre2, value))
+                {
+                    _itemPre2 = value;
+                    AddModifiedProperty(nameof(ItemPre2));
+                }
+            }
+        }
+
+        [NonSerialized] private string _itemPre3;
+        [ColumnName("ITEM_PRE3")]
+        public string ItemPre3
+        {
+            get => _itemPre3;
+            set
+            {
+                if (!Equals(_itemPre3, value))
+                {
+                    _itemPre3 = value;
+                    AddModifiedProperty(nameof(ItemPre3));
+                }
+            }
+        }
+
+        [NonSerialized] private string _itemPre4;
+        [ColumnName("ITEM_PRE4")]
+        public string ItemPre4
+        {
+            get => _itemPre4;
+            set
+            {
+                if (!Equals(_itemPre4, value))
+                {
+                    _itemPre4 = value;
+                    AddModifiedProperty(nameof(ItemPre4));
+                }
+            }
+        }
+
+        [NonSerialized] private string _itemPre5;
+        [ColumnName("ITEM_PRE5")]
+        public string ItemPre5
+        {
+            get => _itemPre5;
+            set
+            {
+                if (!Equals(_itemPre5, value))
+                {
+                    _itemPre5 = value;
+                    AddModifiedProperty(nameof(ItemPre5));
+                }
+            }
+        }
+
+        [NonSerialized] private string _itemPre6;
+        [ColumnName("ITEM_PRE6")]
+        public string ItemPre6
+        {
+            get => _itemPre6;
+            set
+            {
+                if (!Equals(_itemPre6, value))
+                {
+                    _itemPre6 = value;
+                    AddModifiedProperty(nameof(ItemPre6));
+                }
+            }
+        }
+
+        [NonSerialized] private int? _timeout;
+        [ColumnName("TIMEOUT")]
+        public int? Timeout
+        {
+            get => _timeout;
+            set
+            {
+                if (!Equals(_timeout, value))
+                {
+                    _timeout = value;
+                    AddModifiedProperty(nameof(Timeout));
+                }
+            }
+        }
+
     }
 }

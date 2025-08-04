@@ -1,5 +1,8 @@
+using System;
+using System.ComponentModel.DataAnnotations;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
+
 namespace DBDataLibrary.Tables
 {
     //  --------------------------------------------------
@@ -7,10 +10,72 @@ namespace DBDataLibrary.Tables
     // --                DO NOT MODIFY!!!                --
     // -- ANY CHANGE WILL BE LOST AT THE NEXT GENERATION --
     //  --------------------------------------------------
-    [TableType(TableTypes.Undefined)]
-    public partial class MfcConvEventType : ACrudBase<MfcConvEventType, MfcConvEventType_data>
+    [TableName("MFC_CONV_EVENT_TYPE")]
+    public partial class MfcConvEventType : ACrudBase<MfcConvEventType>
     {
         public MfcConvEventType() : base() { }
-        public override string TableName => "MFC_CONV_EVENT_TYPE";
+        
+        [NonSerialized] private long _oid;
+        [ColumnName("OID")]
+        [Key]
+        public long Oid
+        {
+            get => _oid;
+            set
+            {
+                if (!Equals(_oid, value))
+                {
+                    _oid = value;
+                    AddModifiedProperty(nameof(Oid));
+                }
+            }
+        }
+
+        [NonSerialized] private string _dscType = "";
+        [ColumnName("DSC_TYPE")]
+        [Required]
+        public string DscType
+        {
+            get => _dscType;
+            set
+            {
+                if (!Equals(_dscType, value))
+                {
+                    _dscType = value;
+                    AddModifiedProperty(nameof(DscType));
+                }
+            }
+        }
+
+        [NonSerialized] private int? _eventGroup;
+        [ColumnName("EVENT_GROUP")]
+        public int? EventGroup
+        {
+            get => _eventGroup;
+            set
+            {
+                if (!Equals(_eventGroup, value))
+                {
+                    _eventGroup = value;
+                    AddModifiedProperty(nameof(EventGroup));
+                }
+            }
+        }
+
+        [NonSerialized] private string _descComment;
+        [ColumnName("DESC_COMMENT")]
+        public string DescComment
+        {
+            get => _descComment;
+            set
+            {
+                if (!Equals(_descComment, value))
+                {
+                    _descComment = value;
+                    AddModifiedProperty(nameof(DescComment));
+                }
+            }
+        }
+
     }
 }

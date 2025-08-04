@@ -1,79 +1,38 @@
 ﻿using DBDataLibrary.Attributes;
-using DBDataLibrary.DataTypes;
-using System;
-using System.Collections.Generic;
 using System.Data;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace DBDataLibrary.CRUD
 {
-    public abstract class ACrudBase<TClass, TData>
-        where TClass : ACrudBase<TClass, TData>, new()
-        where TData : IDBData, new()
+    public abstract class ACrudBase<TClass> : ICrudClass<TClass> 
+        where TClass : ACrudBase<TClass>, new()
     {
-        protected TData Data;
         protected HashSet<string> _modifiedProperties = new();
 
-        protected ACrudBase()
-        {
-            Data = new TData();
-            //Data.SetCrudClass(this);
-        }
+        protected ACrudBase() { }
 
-        /// <summary>
-        /// Use <see cref="GetData"/> to modify the data.
-        /// </summary>
-        /// <typeparam name="TValue"></typeparam>
-        /// <param name="propertyName"></param>
-        /// <param name="value"></param>
-        /// <exception cref="ArgumentException"></exception>
-        protected void Set<TValue>(string propertyName, TValue value)
+        protected void AddModifiedProperty(string propertyName)
         {
-            var prop = typeof(TData).GetProperty(propertyName);
-            if (prop != null)
-            {
-                prop.SetValue(Data, value);
+            if (string.IsNullOrWhiteSpace(propertyName))
+                throw new ArgumentException("Property name cannot be null or empty.", nameof(propertyName));
+
+            if (!_modifiedProperties.Contains(propertyName))
                 _modifiedProperties.Add(propertyName);
-            }
-            else
-            {
-                throw new ArgumentException($"Property '{propertyName}' not found on {typeof(TData).Name}");
-            }
         }
 
-        /// <summary>
-        /// Use <see cref="GetData"/> to get the data.
-        /// </summary>
-        protected TValue Get<TValue>(string propertyName)
+        private static string _tableName = "";
+        protected static string GetTableName()
         {
-            var prop = typeof(TData).GetProperty(propertyName);
-            var value = prop?.GetValue(Data);
-
-            // Controllo se TValue è nullable
-            var tValueType = typeof(TValue);
-            bool isNullable = !tValueType.IsValueType || Nullable.GetUnderlyingType(tValueType) != null;
-
-            if (value is null)
+            if (string.IsNullOrEmpty(_tableName))
             {
-                if (isNullable)
-                {
-                    return default!;
-                }
-                else
-                {
-                    throw new InvalidOperationException($"Il valore della proprietà '{propertyName}' è null, ma il tipo '{typeof(TValue).Name}' non ammette null.");
-                }
+                var attr = typeof(TClass).GetCustomAttribute<TableNameAttribute>();
+                _tableName = attr != null ? attr.TableName : typeof(TClass).Name;
             }
-
-            return (TValue)value;
+            
+            return _tableName;
         }
 
-        public TData GetData() => Data;
-
-        public abstract string TableName { get; }
+        public string TableName => GetTableName();
 
         /// <summary>
         /// Retrieves a dictionary containing the names and values of the properties marked with the [Key] attribute.
@@ -89,8 +48,8 @@ namespace DBDataLibrary.CRUD
                 // Get the column name, falling back to the property name if no attribute is present
                 string columnName = GetColumnName(prop);
 
-                // Get the value of the key property from the Data instance
-                object? value = prop.GetValue(Data);
+                // Get the value of the key property from the instance
+                object? value = prop.GetValue(this);
 
                 keyValues[columnName] = value ?? DBNull.Value;
             }
@@ -100,12 +59,12 @@ namespace DBDataLibrary.CRUD
 
         protected List<PropertyInfo> GetKeyProperties()
         {
-            return typeof(TData).GetProperties()
+            return typeof(TClass).GetProperties()
                 .Where(p => p.GetCustomAttribute<System.ComponentModel.DataAnnotations.KeyAttribute>() != null)
                 .ToList();
         }
 
-        protected string GetColumnName(PropertyInfo prop)
+        protected static string GetColumnName(PropertyInfo prop)
         {
             var attr = prop.GetCustomAttribute<ColumnNameAttribute>();
             return attr != null ? attr.Name : prop.Name;
@@ -113,6 +72,10 @@ namespace DBDataLibrary.CRUD
 
         public bool Insert(IDbConnection connection)
         {
+            if (!HasTableTypeFlag(TableTypes.Insertable))
+                throw new InvalidOperationException($"Insert is not allowed for table type '{typeof(TClass).Name}'.");
+
+
             var keyProps = GetKeyProperties();
             var insertableProps = GetKeyProperties();
 
@@ -135,7 +98,7 @@ namespace DBDataLibrary.CRUD
             {
                 var param = cmd.CreateParameter();
                 param.ParameterName = ":" + GetColumnName(prop);
-                param.Value = prop.GetValue(Data) ?? DBNull.Value;
+                param.Value = prop.GetValue(this) ?? DBNull.Value;
                 cmd.Parameters.Add(param);
             }
 
@@ -164,7 +127,7 @@ namespace DBDataLibrary.CRUD
                 var param = kv.Value;
 
                 if (param.Value != DBNull.Value)
-                    prop.SetValue(Data, Convert.ChangeType(param.Value, Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType));
+                    prop.SetValue(this, Convert.ChangeType(param.Value, Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType));
             }
 
             _modifiedProperties.Clear();
@@ -188,14 +151,25 @@ namespace DBDataLibrary.CRUD
             };
         }
 
+        private static bool HasTableTypeFlag(TableTypes required)
+        {
+            var attr = typeof(TClass).GetCustomAttribute<TableTypeAttribute>();
+            return attr != null && attr.TableType.HasFlag(required);
+        }
+
+
         public bool Update(IDbConnection connection)
         {
+            if (!HasTableTypeFlag(TableTypes.Updatable))
+                throw new InvalidOperationException($"Update is not allowed for table type '{typeof(TClass).Name}'.");
+
+
             var modified = _modifiedProperties.ToList();
 
             if (!modified.Any())
                 return false;
 
-            var type = typeof(TData);
+            var type = typeof(TClass);
             var propsModified = modified
                 .Select(name => type.GetProperty(name))
                 .Where(p => p != null && p.GetCustomAttribute<System.ComponentModel.DataAnnotations.KeyAttribute>() == null)
@@ -208,7 +182,22 @@ namespace DBDataLibrary.CRUD
             if (!keyProps.Any())
                 throw new InvalidOperationException("No [Key] properties found for update.");
 
-            var setClause = string.Join(", ", propsModified.Select(p => $"{GetColumnName(p)} = :{GetColumnName(p)}"));
+            //var setClause = string.Join(", ", propsModified.Select(p => $"{GetColumnName(p)} = :{GetColumnName(p)}"));
+            var setAssignments = new List<string>();
+            foreach (var prop in propsModified)
+            {
+                var column = GetColumnName(prop);
+                if (column.Equals("DT_UPDATE", StringComparison.OrdinalIgnoreCase))
+                {
+                    setAssignments.Add($"{column} = SYSDATE");
+                }
+                else
+                {
+                    setAssignments.Add($"{column} = :{column}");
+                }
+            }
+            var setClause = string.Join(", ", setAssignments);
+
             var whereClause = string.Join(" AND ", keyProps.Select(p => $"{GetColumnName(p)} = :{GetColumnName(p)}"));
 
             var sql = $"UPDATE {TableName} SET {setClause} WHERE {whereClause}";
@@ -216,11 +205,12 @@ namespace DBDataLibrary.CRUD
             using var cmd = connection.CreateCommand();
             cmd.CommandText = sql;
 
-            foreach (var prop in propsModified)
+            //foreach (var prop in propsModified)
+            foreach (var prop in propsModified.Where(p => !GetColumnName(p).Equals("DT_UPDATE", StringComparison.OrdinalIgnoreCase)))
             {
                 var param = cmd.CreateParameter();
                 param.ParameterName = ":" + GetColumnName(prop);
-                param.Value = prop.GetValue(Data) ?? DBNull.Value;
+                param.Value = prop.GetValue(this) ?? DBNull.Value;
                 cmd.Parameters.Add(param);
             }
 
@@ -228,7 +218,7 @@ namespace DBDataLibrary.CRUD
             {
                 var param = cmd.CreateParameter();
                 param.ParameterName = ":" + GetColumnName(keyProp);
-                param.Value = keyProp.GetValue(Data) ?? DBNull.Value;
+                param.Value = keyProp.GetValue(this) ?? DBNull.Value;
                 cmd.Parameters.Add(param);
             }
 
@@ -241,6 +231,10 @@ namespace DBDataLibrary.CRUD
 
         public bool Delete(IDbConnection connection)
         {
+            if (!HasTableTypeFlag(TableTypes.Deletable))
+                throw new InvalidOperationException($"Delete is not allowed for table type '{typeof(TClass).Name}'.");
+
+
             var keyProps = GetKeyProperties();
             if (!keyProps.Any())
                 throw new InvalidOperationException("No [Key] properties found for delete.");
@@ -255,14 +249,14 @@ namespace DBDataLibrary.CRUD
             {
                 var param = cmd.CreateParameter();
                 param.ParameterName = ":" + GetColumnName(keyProp);
-                param.Value = keyProp.GetValue(Data) ?? DBNull.Value;
+                param.Value = keyProp.GetValue(this) ?? DBNull.Value;
                 cmd.Parameters.Add(param);
             }
 
             return cmd.ExecuteNonQuery() > 0;
         }
 
-        public TData Load(IDbConnection connection, params object[] keyValues)
+        public TClass Load(IDbConnection connection, params object[] keyValues)
         {
             var keyProps = GetKeyProperties();
             if (keyProps.Count != keyValues.Length)
@@ -285,17 +279,16 @@ namespace DBDataLibrary.CRUD
             using var reader = cmd.ExecuteReader();
             if (!reader.Read())
                 return default!;
-            
+
             var dataInstance = ReadData(reader);
-            Data = dataInstance; 
             _modifiedProperties.Clear();
             return dataInstance;
         }
 
-        private TData ReadData(IDataReader reader)
+        private TClass ReadData(IDataReader reader)
         {
-            var instance = new TData();
-            var props = typeof(TData).GetProperties().ToDictionary(p => GetColumnName(p), p => p, StringComparer.OrdinalIgnoreCase);
+            var instance = new TClass();
+            var props = typeof(TClass).GetProperties().ToDictionary(p => GetColumnName(p), p => p, StringComparer.OrdinalIgnoreCase);
 
             for (int i = 0; i < reader.FieldCount; i++)
             {
@@ -303,8 +296,8 @@ namespace DBDataLibrary.CRUD
                 if (!props.TryGetValue(name, out var prop) || !prop.CanWrite)
                     continue;
 
-                var value = reader.IsDBNull(i) ? null : reader.GetValue(i); 
-                
+                var value = reader.IsDBNull(i) ? null : reader.GetValue(i);
+
                 if (value != null)
                 {
                     // Get the underlying type of the property (e.g., Int32 for Nullable<Int32>)
@@ -315,13 +308,13 @@ namespace DBDataLibrary.CRUD
                 }
 
                 prop.SetValue(instance, value);
-            }            
+            }
             return instance;
         }
 
-        public IEnumerable<TClass> LoadAll(IDbConnection connection, string whereFilter = "")
+        public static IEnumerable<TClass> LoadAll(IDbConnection connection, string whereFilter = "")
         {
-            var sql = $"SELECT * FROM {TableName}";
+            var sql = $"SELECT * FROM {GetTableName()}";
             if (!string.IsNullOrWhiteSpace(whereFilter))
             {
                 sql += " WHERE " + whereFilter;
@@ -332,7 +325,7 @@ namespace DBDataLibrary.CRUD
 
             using var reader = cmd.ExecuteReader();
             var resultList = new List<TClass>();
-            var type = typeof(TData);
+            var type = typeof(TClass);
             var props = type.GetProperties().ToDictionary(p => GetColumnName(p), p => p, StringComparer.OrdinalIgnoreCase);
 
             while (reader.Read())

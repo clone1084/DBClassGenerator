@@ -1,5 +1,8 @@
+using System;
+using System.ComponentModel.DataAnnotations;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
+
 namespace DBDataLibrary.Tables
 {
     //  --------------------------------------------------
@@ -7,10 +10,26 @@ namespace DBDataLibrary.Tables
     // --                DO NOT MODIFY!!!                --
     // -- ANY CHANGE WILL BE LOST AT THE NEXT GENERATION --
     //  --------------------------------------------------
-    [TableType(TableTypes.Undefined)]
-    public partial class MfcConvAdvanceableMovements : ACrudBase<MfcConvAdvanceableMovements, MfcConvAdvanceableMovements_data>
+    [TableName("MFC_CONV_ADVANCEABLE_MOVEMENTS")]
+    public partial class MfcConvAdvanceableMovements : ACrudBase<MfcConvAdvanceableMovements>
     {
         public MfcConvAdvanceableMovements() : base() { }
-        public override string TableName => "MFC_CONV_ADVANCEABLE_MOVEMENTS";
+        
+        [NonSerialized] private string _cdItem;
+        [ColumnName("CD_ITEM")]
+        [Key]
+        public string CdItem
+        {
+            get => _cdItem;
+            set
+            {
+                if (!Equals(_cdItem, value))
+                {
+                    _cdItem = value;
+                    AddModifiedProperty(nameof(CdItem));
+                }
+            }
+        }
+
     }
 }

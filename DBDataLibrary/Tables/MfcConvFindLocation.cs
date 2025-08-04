@@ -1,5 +1,8 @@
+using System;
+using System.ComponentModel.DataAnnotations;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
+
 namespace DBDataLibrary.Tables
 {
     //  --------------------------------------------------
@@ -7,10 +10,145 @@ namespace DBDataLibrary.Tables
     // --                DO NOT MODIFY!!!                --
     // -- ANY CHANGE WILL BE LOST AT THE NEXT GENERATION --
     //  --------------------------------------------------
-    [TableType(TableTypes.Undefined)]
-    public partial class MfcConvFindLocation : ACrudBase<MfcConvFindLocation, MfcConvFindLocation_data>
+    [TableName("MFC_CONV_FIND_LOCATION")]
+    public partial class MfcConvFindLocation : ACrudBase<MfcConvFindLocation>
     {
         public MfcConvFindLocation() : base() { }
-        public override string TableName => "MFC_CONV_FIND_LOCATION";
+        
+        [NonSerialized] private int? _oid;
+        [ColumnName("OID")]
+        public int? Oid
+        {
+            get => _oid;
+            set
+            {
+                if (!Equals(_oid, value))
+                {
+                    _oid = value;
+                    AddModifiedProperty(nameof(Oid));
+                }
+            }
+        }
+
+        [NonSerialized] private long? _oidUdm;
+        [ColumnName("OID_UDM")]
+        public long? OidUdm
+        {
+            get => _oidUdm;
+            set
+            {
+                if (!Equals(_oidUdm, value))
+                {
+                    _oidUdm = value;
+                    AddModifiedProperty(nameof(OidUdm));
+                }
+            }
+        }
+
+        [NonSerialized] private int? _cdCrane;
+        [ColumnName("CD_CRANE")]
+        public int? CdCrane
+        {
+            get => _cdCrane;
+            set
+            {
+                if (!Equals(_cdCrane, value))
+                {
+                    _cdCrane = value;
+                    AddModifiedProperty(nameof(CdCrane));
+                }
+            }
+        }
+
+        [NonSerialized] private string _cdItem;
+        [ColumnName("CD_ITEM")]
+        public string CdItem
+        {
+            get => _cdItem;
+            set
+            {
+                if (!Equals(_cdItem, value))
+                {
+                    _cdItem = value;
+                    AddModifiedProperty(nameof(CdItem));
+                }
+            }
+        }
+
+        [NonSerialized] private int? _tpItem;
+        [ColumnName("TP_ITEM")]
+        public int? TpItem
+        {
+            get => _tpItem;
+            set
+            {
+                if (!Equals(_tpItem, value))
+                {
+                    _tpItem = value;
+                    AddModifiedProperty(nameof(TpItem));
+                }
+            }
+        }
+
+        [NonSerialized] private long? _oidAreas;
+        [ColumnName("OID_AREAS")]
+        public long? OidAreas
+        {
+            get => _oidAreas;
+            set
+            {
+                if (!Equals(_oidAreas, value))
+                {
+                    _oidAreas = value;
+                    AddModifiedProperty(nameof(OidAreas));
+                }
+            }
+        }
+
+        [NonSerialized] private int? _stRequest;
+        [ColumnName("ST_REQUEST")]
+        public int? StRequest
+        {
+            get => _stRequest;
+            set
+            {
+                if (!Equals(_stRequest, value))
+                {
+                    _stRequest = value;
+                    AddModifiedProperty(nameof(StRequest));
+                }
+            }
+        }
+
+        [NonSerialized] private DateTime? _dtInsert;
+        [ColumnName("DT_INSERT")]
+        public DateTime? DtInsert
+        {
+            get => _dtInsert;
+            set
+            {
+                if (!Equals(_dtInsert, value))
+                {
+                    _dtInsert = value;
+                    AddModifiedProperty(nameof(DtInsert));
+                }
+            }
+        }
+
+        [NonSerialized] private DateTime? _dtUpdate;
+        [ColumnName("DT_UPDATE")]
+        public DateTime? DtUpdate
+        {
+            get => _dtUpdate;
+            set
+            {
+                if (!Equals(_dtUpdate, value))
+                {
+                    _dtUpdate = value;
+                    AddModifiedProperty(nameof(DtUpdate));
+                }
+            }
+        }
+
     }
 }

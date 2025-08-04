@@ -1,5 +1,8 @@
+using System;
+using System.ComponentModel.DataAnnotations;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
+
 namespace DBDataLibrary.Tables
 {
     //  --------------------------------------------------
@@ -7,10 +10,42 @@ namespace DBDataLibrary.Tables
     // --                DO NOT MODIFY!!!                --
     // -- ANY CHANGE WILL BE LOST AT THE NEXT GENERATION --
     //  --------------------------------------------------
-    [TableType(TableTypes.Undefined)]
-    public partial class MfcConvGroupColdstart : ACrudBase<MfcConvGroupColdstart, MfcConvGroupColdstart_data>
+    [TableName("MFC_CONV_GROUP_COLDSTART")]
+    public partial class MfcConvGroupColdstart : ACrudBase<MfcConvGroupColdstart>
     {
         public MfcConvGroupColdstart() : base() { }
-        public override string TableName => "MFC_CONV_GROUP_COLDSTART";
+        
+        [NonSerialized] private string _cdGroup = "";
+        [ColumnName("CD_GROUP")]
+        [Required]
+        public string CdGroup
+        {
+            get => _cdGroup;
+            set
+            {
+                if (!Equals(_cdGroup, value))
+                {
+                    _cdGroup = value;
+                    AddModifiedProperty(nameof(CdGroup));
+                }
+            }
+        }
+
+        [NonSerialized] private string _cdStation = "";
+        [ColumnName("CD_STATION")]
+        [Required]
+        public string CdStation
+        {
+            get => _cdStation;
+            set
+            {
+                if (!Equals(_cdStation, value))
+                {
+                    _cdStation = value;
+                    AddModifiedProperty(nameof(CdStation));
+                }
+            }
+        }
+
     }
 }

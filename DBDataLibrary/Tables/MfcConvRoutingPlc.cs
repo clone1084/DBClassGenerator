@@ -1,5 +1,8 @@
+using System;
+using System.ComponentModel.DataAnnotations;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
+
 namespace DBDataLibrary.Tables
 {
     //  --------------------------------------------------
@@ -7,10 +10,42 @@ namespace DBDataLibrary.Tables
     // --                DO NOT MODIFY!!!                --
     // -- ANY CHANGE WILL BE LOST AT THE NEXT GENERATION --
     //  --------------------------------------------------
-    [TableType(TableTypes.Undefined)]
-    public partial class MfcConvRoutingPlc : ACrudBase<MfcConvRoutingPlc, MfcConvRoutingPlc_data>
+    [TableName("MFC_CONV_ROUTING_PLC")]
+    public partial class MfcConvRoutingPlc : ACrudBase<MfcConvRoutingPlc>
     {
         public MfcConvRoutingPlc() : base() { }
-        public override string TableName => "MFC_CONV_ROUTING_PLC";
+        
+        [NonSerialized] private string _cdItemTo = "";
+        [ColumnName("CD_ITEM_TO")]
+        [Required]
+        public string CdItemTo
+        {
+            get => _cdItemTo;
+            set
+            {
+                if (!Equals(_cdItemTo, value))
+                {
+                    _cdItemTo = value;
+                    AddModifiedProperty(nameof(CdItemTo));
+                }
+            }
+        }
+
+        [NonSerialized] private string _cdItemNext = "";
+        [ColumnName("CD_ITEM_NEXT")]
+        [Required]
+        public string CdItemNext
+        {
+            get => _cdItemNext;
+            set
+            {
+                if (!Equals(_cdItemNext, value))
+                {
+                    _cdItemNext = value;
+                    AddModifiedProperty(nameof(CdItemNext));
+                }
+            }
+        }
+
     }
 }

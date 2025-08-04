@@ -1,5 +1,8 @@
+using System;
+using System.ComponentModel.DataAnnotations;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
+
 namespace DBDataLibrary.Tables
 {
     //  --------------------------------------------------
@@ -7,10 +10,57 @@ namespace DBDataLibrary.Tables
     // --                DO NOT MODIFY!!!                --
     // -- ANY CHANGE WILL BE LOST AT THE NEXT GENERATION --
     //  --------------------------------------------------
-    [TableType(TableTypes.Undefined)]
-    public partial class MfcConvMovToSend : ACrudBase<MfcConvMovToSend, MfcConvMovToSend_data>
+    [TableName("MFC_CONV_MOV_TO_SEND")]
+    public partial class MfcConvMovToSend : ACrudBase<MfcConvMovToSend>
     {
         public MfcConvMovToSend() : base() { }
-        public override string TableName => "MFC_CONV_MOV_TO_SEND";
+        
+        [NonSerialized] private long _oidUdm = default(long);
+        [ColumnName("OID_UDM")]
+        [Required]
+        public long OidUdm
+        {
+            get => _oidUdm;
+            set
+            {
+                if (!Equals(_oidUdm, value))
+                {
+                    _oidUdm = value;
+                    AddModifiedProperty(nameof(OidUdm));
+                }
+            }
+        }
+
+        [NonSerialized] private string _cdItem;
+        [ColumnName("CD_ITEM")]
+        [Key]
+        public string CdItem
+        {
+            get => _cdItem;
+            set
+            {
+                if (!Equals(_cdItem, value))
+                {
+                    _cdItem = value;
+                    AddModifiedProperty(nameof(CdItem));
+                }
+            }
+        }
+
+        [NonSerialized] private DateTime? _dtInsert;
+        [ColumnName("DT_INSERT")]
+        public DateTime? DtInsert
+        {
+            get => _dtInsert;
+            set
+            {
+                if (!Equals(_dtInsert, value))
+                {
+                    _dtInsert = value;
+                    AddModifiedProperty(nameof(DtInsert));
+                }
+            }
+        }
+
     }
 }

@@ -6,6 +6,13 @@ using System.Threading.Tasks;
 
 namespace DBDataLibrary.Attributes
 {
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = true)]
+    public class TableNameAttribute : Attribute
+    {
+        public string TableName { get; }
+        public TableNameAttribute(string tableName) => TableName = tableName;
+    }
+
     [AttributeUsage(AttributeTargets.Property, AllowMultiple = false, Inherited = true)]
     public class ColumnNameAttribute : Attribute
     {

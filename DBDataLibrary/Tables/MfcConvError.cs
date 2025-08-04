@@ -1,5 +1,8 @@
+using System;
+using System.ComponentModel.DataAnnotations;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
+
 namespace DBDataLibrary.Tables
 {
     //  --------------------------------------------------
@@ -7,10 +10,115 @@ namespace DBDataLibrary.Tables
     // --                DO NOT MODIFY!!!                --
     // -- ANY CHANGE WILL BE LOST AT THE NEXT GENERATION --
     //  --------------------------------------------------
-    [TableType(TableTypes.Undefined)]
-    public partial class MfcConvError : ACrudBase<MfcConvError, MfcConvError_data>
+    [TableName("MFC_CONV_ERROR")]
+    public partial class MfcConvError : ACrudBase<MfcConvError>
     {
         public MfcConvError() : base() { }
-        public override string TableName => "MFC_CONV_ERROR";
+        
+        [NonSerialized] private int? _cdError;
+        [ColumnName("CD_ERROR")]
+        public int? CdError
+        {
+            get => _cdError;
+            set
+            {
+                if (!Equals(_cdError, value))
+                {
+                    _cdError = value;
+                    AddModifiedProperty(nameof(CdError));
+                }
+            }
+        }
+
+        [NonSerialized] private int? _cdConveyor;
+        [ColumnName("CD_CONVEYOR")]
+        public int? CdConveyor
+        {
+            get => _cdConveyor;
+            set
+            {
+                if (!Equals(_cdConveyor, value))
+                {
+                    _cdConveyor = value;
+                    AddModifiedProperty(nameof(CdConveyor));
+                }
+            }
+        }
+
+        [NonSerialized] private string _cdLanguage;
+        [ColumnName("CD_LANGUAGE")]
+        public string CdLanguage
+        {
+            get => _cdLanguage;
+            set
+            {
+                if (!Equals(_cdLanguage, value))
+                {
+                    _cdLanguage = value;
+                    AddModifiedProperty(nameof(CdLanguage));
+                }
+            }
+        }
+
+        [NonSerialized] private string _dscError;
+        [ColumnName("DSC_ERROR")]
+        public string DscError
+        {
+            get => _dscError;
+            set
+            {
+                if (!Equals(_dscError, value))
+                {
+                    _dscError = value;
+                    AddModifiedProperty(nameof(DscError));
+                }
+            }
+        }
+
+        [NonSerialized] private long? _oidMfcDatablock;
+        [ColumnName("OID_MFC_DATABLOCK")]
+        public long? OidMfcDatablock
+        {
+            get => _oidMfcDatablock;
+            set
+            {
+                if (!Equals(_oidMfcDatablock, value))
+                {
+                    _oidMfcDatablock = value;
+                    AddModifiedProperty(nameof(OidMfcDatablock));
+                }
+            }
+        }
+
+        [NonSerialized] private long? _bitPosition;
+        [ColumnName("BIT_POSITION")]
+        public long? BitPosition
+        {
+            get => _bitPosition;
+            set
+            {
+                if (!Equals(_bitPosition, value))
+                {
+                    _bitPosition = value;
+                    AddModifiedProperty(nameof(BitPosition));
+                }
+            }
+        }
+
+        [NonSerialized] private int? _tpAnomaly;
+        [ColumnName("TP_ANOMALY")]
+        public int? TpAnomaly
+        {
+            get => _tpAnomaly;
+            set
+            {
+                if (!Equals(_tpAnomaly, value))
+                {
+                    _tpAnomaly = value;
+                    AddModifiedProperty(nameof(TpAnomaly));
+                }
+            }
+        }
+
     }
 }

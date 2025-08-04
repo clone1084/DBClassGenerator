@@ -1,5 +1,8 @@
+using System;
+using System.ComponentModel.DataAnnotations;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
+
 namespace DBDataLibrary.Tables
 {
     //  --------------------------------------------------
@@ -7,10 +10,40 @@ namespace DBDataLibrary.Tables
     // --                DO NOT MODIFY!!!                --
     // -- ANY CHANGE WILL BE LOST AT THE NEXT GENERATION --
     //  --------------------------------------------------
-    [TableType(TableTypes.Undefined)]
-    public partial class MfcConvMultifunction : ACrudBase<MfcConvMultifunction, MfcConvMultifunction_data>
+    [TableName("MFC_CONV_MULTIFUNCTION")]
+    public partial class MfcConvMultifunction : ACrudBase<MfcConvMultifunction>
     {
         public MfcConvMultifunction() : base() { }
-        public override string TableName => "MFC_CONV_MULTIFUNCTION";
+        
+        [NonSerialized] private string _cdUdm;
+        [ColumnName("CD_UDM")]
+        public string CdUdm
+        {
+            get => _cdUdm;
+            set
+            {
+                if (!Equals(_cdUdm, value))
+                {
+                    _cdUdm = value;
+                    AddModifiedProperty(nameof(CdUdm));
+                }
+            }
+        }
+
+        [NonSerialized] private DateTime? _dtInsert;
+        [ColumnName("DT_INSERT")]
+        public DateTime? DtInsert
+        {
+            get => _dtInsert;
+            set
+            {
+                if (!Equals(_dtInsert, value))
+                {
+                    _dtInsert = value;
+                    AddModifiedProperty(nameof(DtInsert));
+                }
+            }
+        }
+
     }
 }

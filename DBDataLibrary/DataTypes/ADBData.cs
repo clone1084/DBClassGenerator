@@ -9,8 +9,12 @@ using System.Threading.Tasks;
 
 namespace DBDataLibrary.DataTypes
 {
-    public class ADBData: IDBData
+    public class ADBData : IDBData
     {
-
+        protected ICrudClass crudClass;
+        public void SetCrudClass(ICrudClass aCrudClass)
+        {
+            crudClass = aCrudClass;
+        }
     }
 }

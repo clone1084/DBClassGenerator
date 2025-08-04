@@ -1,5 +1,8 @@
+using System;
+using System.ComponentModel.DataAnnotations;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
+
 namespace DBDataLibrary.Tables
 {
     //  --------------------------------------------------
@@ -7,10 +10,130 @@ namespace DBDataLibrary.Tables
     // --                DO NOT MODIFY!!!                --
     // -- ANY CHANGE WILL BE LOST AT THE NEXT GENERATION --
     //  --------------------------------------------------
-    [TableType(TableTypes.Undefined)]
-    public partial class MfcConvBypass : ACrudBase<MfcConvBypass, MfcConvBypass_data>
+    [TableName("MFC_CONV_BYPASS")]
+    public partial class MfcConvBypass : ACrudBase<MfcConvBypass>
     {
         public MfcConvBypass() : base() { }
-        public override string TableName => "MFC_CONV_BYPASS";
+        
+        [NonSerialized] private string _cdItem;
+        [ColumnName("CD_ITEM")]
+        public string CdItem
+        {
+            get => _cdItem;
+            set
+            {
+                if (!Equals(_cdItem, value))
+                {
+                    _cdItem = value;
+                    AddModifiedProperty(nameof(CdItem));
+                }
+            }
+        }
+
+        [NonSerialized] private string _cdGroup;
+        [ColumnName("CD_GROUP")]
+        public string CdGroup
+        {
+            get => _cdGroup;
+            set
+            {
+                if (!Equals(_cdGroup, value))
+                {
+                    _cdGroup = value;
+                    AddModifiedProperty(nameof(CdGroup));
+                }
+            }
+        }
+
+        [NonSerialized] private string _cdItemNext1;
+        [ColumnName("CD_ITEM_NEXT_1")]
+        public string CdItemNext1
+        {
+            get => _cdItemNext1;
+            set
+            {
+                if (!Equals(_cdItemNext1, value))
+                {
+                    _cdItemNext1 = value;
+                    AddModifiedProperty(nameof(CdItemNext1));
+                }
+            }
+        }
+
+        [NonSerialized] private string _cdItemNext2;
+        [ColumnName("CD_ITEM_NEXT_2")]
+        public string CdItemNext2
+        {
+            get => _cdItemNext2;
+            set
+            {
+                if (!Equals(_cdItemNext2, value))
+                {
+                    _cdItemNext2 = value;
+                    AddModifiedProperty(nameof(CdItemNext2));
+                }
+            }
+        }
+
+        [NonSerialized] private string _cdItemNext3;
+        [ColumnName("CD_ITEM_NEXT_3")]
+        public string CdItemNext3
+        {
+            get => _cdItemNext3;
+            set
+            {
+                if (!Equals(_cdItemNext3, value))
+                {
+                    _cdItemNext3 = value;
+                    AddModifiedProperty(nameof(CdItemNext3));
+                }
+            }
+        }
+
+        [NonSerialized] private string _cdItemPrev1;
+        [ColumnName("CD_ITEM_PREV_1")]
+        public string CdItemPrev1
+        {
+            get => _cdItemPrev1;
+            set
+            {
+                if (!Equals(_cdItemPrev1, value))
+                {
+                    _cdItemPrev1 = value;
+                    AddModifiedProperty(nameof(CdItemPrev1));
+                }
+            }
+        }
+
+        [NonSerialized] private string _cdItemPrev2;
+        [ColumnName("CD_ITEM_PREV_2")]
+        public string CdItemPrev2
+        {
+            get => _cdItemPrev2;
+            set
+            {
+                if (!Equals(_cdItemPrev2, value))
+                {
+                    _cdItemPrev2 = value;
+                    AddModifiedProperty(nameof(CdItemPrev2));
+                }
+            }
+        }
+
+        [NonSerialized] private int? _cdType;
+        [ColumnName("CD_TYPE")]
+        public int? CdType
+        {
+            get => _cdType;
+            set
+            {
+                if (!Equals(_cdType, value))
+                {
+                    _cdType = value;
+                    AddModifiedProperty(nameof(CdType));
+                }
+            }
+        }
+
     }
 }

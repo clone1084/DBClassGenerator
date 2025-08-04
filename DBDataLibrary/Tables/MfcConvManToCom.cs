@@ -1,5 +1,8 @@
+using System;
+using System.ComponentModel.DataAnnotations;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
+
 namespace DBDataLibrary.Tables
 {
     //  --------------------------------------------------
@@ -7,10 +10,88 @@ namespace DBDataLibrary.Tables
     // --                DO NOT MODIFY!!!                --
     // -- ANY CHANGE WILL BE LOST AT THE NEXT GENERATION --
     //  --------------------------------------------------
-    [TableType(TableTypes.Undefined)]
-    public partial class MfcConvManToCom : ACrudBase<MfcConvManToCom, MfcConvManToCom_data>
+    [TableName("MFC_CONV_MAN_TO_COM")]
+    public partial class MfcConvManToCom : ACrudBase<MfcConvManToCom>
     {
         public MfcConvManToCom() : base() { }
-        public override string TableName => "MFC_CONV_MAN_TO_COM";
+        
+        [NonSerialized] private long _oid;
+        [ColumnName("OID")]
+        [Key]
+        public long Oid
+        {
+            get => _oid;
+            set
+            {
+                if (!Equals(_oid, value))
+                {
+                    _oid = value;
+                    AddModifiedProperty(nameof(Oid));
+                }
+            }
+        }
+
+        [NonSerialized] private string _message = "";
+        [ColumnName("MESSAGE")]
+        [Required]
+        public string Message
+        {
+            get => _message;
+            set
+            {
+                if (!Equals(_message, value))
+                {
+                    _message = value;
+                    AddModifiedProperty(nameof(Message));
+                }
+            }
+        }
+
+        [NonSerialized] private string _localEndpointCode;
+        [ColumnName("LOCAL_ENDPOINT_CODE")]
+        public string LocalEndpointCode
+        {
+            get => _localEndpointCode;
+            set
+            {
+                if (!Equals(_localEndpointCode, value))
+                {
+                    _localEndpointCode = value;
+                    AddModifiedProperty(nameof(LocalEndpointCode));
+                }
+            }
+        }
+
+        [NonSerialized] private string _remoteEndpointCode;
+        [ColumnName("REMOTE_ENDPOINT_CODE")]
+        public string RemoteEndpointCode
+        {
+            get => _remoteEndpointCode;
+            set
+            {
+                if (!Equals(_remoteEndpointCode, value))
+                {
+                    _remoteEndpointCode = value;
+                    AddModifiedProperty(nameof(RemoteEndpointCode));
+                }
+            }
+        }
+
+        [NonSerialized] private DateTime _dtInsert = DateTime.MinValue;
+        [ColumnName("DT_INSERT")]
+        [Required]
+        public DateTime DtInsert
+        {
+            get => _dtInsert;
+            set
+            {
+                if (!Equals(_dtInsert, value))
+                {
+                    _dtInsert = value;
+                    AddModifiedProperty(nameof(DtInsert));
+                }
+            }
+        }
+
     }
 }

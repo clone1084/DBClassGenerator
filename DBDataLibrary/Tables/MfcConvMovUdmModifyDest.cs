@@ -1,5 +1,8 @@
+using System;
+using System.ComponentModel.DataAnnotations;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
+
 namespace DBDataLibrary.Tables
 {
     //  --------------------------------------------------
@@ -7,10 +10,25 @@ namespace DBDataLibrary.Tables
     // --                DO NOT MODIFY!!!                --
     // -- ANY CHANGE WILL BE LOST AT THE NEXT GENERATION --
     //  --------------------------------------------------
-    [TableType(TableTypes.Undefined)]
-    public partial class MfcConvMovUdmModifyDest : ACrudBase<MfcConvMovUdmModifyDest, MfcConvMovUdmModifyDest_data>
+    [TableName("MFC_CONV_MOV_UDM_MODIFY_DEST")]
+    public partial class MfcConvMovUdmModifyDest : ACrudBase<MfcConvMovUdmModifyDest>
     {
         public MfcConvMovUdmModifyDest() : base() { }
-        public override string TableName => "MFC_CONV_MOV_UDM_MODIFY_DEST";
+        
+        [NonSerialized] private int? _pos;
+        [ColumnName("POS")]
+        public int? Pos
+        {
+            get => _pos;
+            set
+            {
+                if (!Equals(_pos, value))
+                {
+                    _pos = value;
+                    AddModifiedProperty(nameof(Pos));
+                }
+            }
+        }
+
     }
 }

@@ -1,5 +1,8 @@
+using System;
+using System.ComponentModel.DataAnnotations;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
+
 namespace DBDataLibrary.Tables
 {
     //  --------------------------------------------------
@@ -7,10 +10,87 @@ namespace DBDataLibrary.Tables
     // --                DO NOT MODIFY!!!                --
     // -- ANY CHANGE WILL BE LOST AT THE NEXT GENERATION --
     //  --------------------------------------------------
-    [TableType(TableTypes.Undefined)]
-    public partial class MfcConvUdmToMove : ACrudBase<MfcConvUdmToMove, MfcConvUdmToMove_data>
+    [TableName("MFC_CONV_UDM_TO_MOVE")]
+    public partial class MfcConvUdmToMove : ACrudBase<MfcConvUdmToMove>
     {
         public MfcConvUdmToMove() : base() { }
-        public override string TableName => "MFC_CONV_UDM_TO_MOVE";
+        
+        [NonSerialized] private string _cdUdc = "";
+        [ColumnName("CD_UDC")]
+        [Required]
+        public string CdUdc
+        {
+            get => _cdUdc;
+            set
+            {
+                if (!Equals(_cdUdc, value))
+                {
+                    _cdUdc = value;
+                    AddModifiedProperty(nameof(CdUdc));
+                }
+            }
+        }
+
+        [NonSerialized] private string _cdUdm = "";
+        [ColumnName("CD_UDM")]
+        [Required]
+        public string CdUdm
+        {
+            get => _cdUdm;
+            set
+            {
+                if (!Equals(_cdUdm, value))
+                {
+                    _cdUdm = value;
+                    AddModifiedProperty(nameof(CdUdm));
+                }
+            }
+        }
+
+        [NonSerialized] private DateTime? _dtInsert;
+        [ColumnName("DT_INSERT")]
+        public DateTime? DtInsert
+        {
+            get => _dtInsert;
+            set
+            {
+                if (!Equals(_dtInsert, value))
+                {
+                    _dtInsert = value;
+                    AddModifiedProperty(nameof(DtInsert));
+                }
+            }
+        }
+
+        [NonSerialized] private string _insertBy;
+        [ColumnName("INSERT_BY")]
+        public string InsertBy
+        {
+            get => _insertBy;
+            set
+            {
+                if (!Equals(_insertBy, value))
+                {
+                    _insertBy = value;
+                    AddModifiedProperty(nameof(InsertBy));
+                }
+            }
+        }
+
+        [NonSerialized] private string _fileSource;
+        [ColumnName("FILE_SOURCE")]
+        public string FileSource
+        {
+            get => _fileSource;
+            set
+            {
+                if (!Equals(_fileSource, value))
+                {
+                    _fileSource = value;
+                    AddModifiedProperty(nameof(FileSource));
+                }
+            }
+        }
+
     }
 }

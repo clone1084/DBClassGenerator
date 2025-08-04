@@ -1,5 +1,8 @@
+using System;
+using System.ComponentModel.DataAnnotations;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
+
 namespace DBDataLibrary.Tables
 {
     //  --------------------------------------------------
@@ -7,10 +10,116 @@ namespace DBDataLibrary.Tables
     // --                DO NOT MODIFY!!!                --
     // -- ANY CHANGE WILL BE LOST AT THE NEXT GENERATION --
     //  --------------------------------------------------
-    [TableType(TableTypes.Undefined)]
-    public partial class MfcConvInputItems : ACrudBase<MfcConvInputItems, MfcConvInputItems_data>
+    [TableName("MFC_CONV_INPUT_ITEMS")]
+    public partial class MfcConvInputItems : ACrudBase<MfcConvInputItems>
     {
         public MfcConvInputItems() : base() { }
-        public override string TableName => "MFC_CONV_INPUT_ITEMS";
+        
+        [NonSerialized] private string _cdItem;
+        [ColumnName("CD_ITEM")]
+        [Key]
+        public string CdItem
+        {
+            get => _cdItem;
+            set
+            {
+                if (!Equals(_cdItem, value))
+                {
+                    _cdItem = value;
+                    AddModifiedProperty(nameof(CdItem));
+                }
+            }
+        }
+
+        [NonSerialized] private int? _tpItem;
+        [ColumnName("TP_ITEM")]
+        public int? TpItem
+        {
+            get => _tpItem;
+            set
+            {
+                if (!Equals(_tpItem, value))
+                {
+                    _tpItem = value;
+                    AddModifiedProperty(nameof(TpItem));
+                }
+            }
+        }
+
+        [NonSerialized] private int? _flExitLine;
+        [ColumnName("FL_EXIT_LINE")]
+        public int? FlExitLine
+        {
+            get => _flExitLine;
+            set
+            {
+                if (!Equals(_flExitLine, value))
+                {
+                    _flExitLine = value;
+                    AddModifiedProperty(nameof(FlExitLine));
+                }
+            }
+        }
+
+        [NonSerialized] private int? _stConfigMode;
+        [ColumnName("ST_CONFIG_MODE")]
+        public int? StConfigMode
+        {
+            get => _stConfigMode;
+            set
+            {
+                if (!Equals(_stConfigMode, value))
+                {
+                    _stConfigMode = value;
+                    AddModifiedProperty(nameof(StConfigMode));
+                }
+            }
+        }
+
+        [NonSerialized] private DateTime? _dtUpdate;
+        [ColumnName("DT_UPDATE")]
+        public DateTime? DtUpdate
+        {
+            get => _dtUpdate;
+            set
+            {
+                if (!Equals(_dtUpdate, value))
+                {
+                    _dtUpdate = value;
+                    AddModifiedProperty(nameof(DtUpdate));
+                }
+            }
+        }
+
+        [NonSerialized] private string _cdItemDest;
+        [ColumnName("CD_ITEM_DEST")]
+        public string CdItemDest
+        {
+            get => _cdItemDest;
+            set
+            {
+                if (!Equals(_cdItemDest, value))
+                {
+                    _cdItemDest = value;
+                    AddModifiedProperty(nameof(CdItemDest));
+                }
+            }
+        }
+
+        [NonSerialized] private int? _flToStreach;
+        [ColumnName("FL_TO_STREACH")]
+        public int? FlToStreach
+        {
+            get => _flToStreach;
+            set
+            {
+                if (!Equals(_flToStreach, value))
+                {
+                    _flToStreach = value;
+                    AddModifiedProperty(nameof(FlToStreach));
+                }
+            }
+        }
+
     }
 }

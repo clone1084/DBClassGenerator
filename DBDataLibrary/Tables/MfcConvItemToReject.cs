@@ -1,5 +1,8 @@
+using System;
+using System.ComponentModel.DataAnnotations;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
+
 namespace DBDataLibrary.Tables
 {
     //  --------------------------------------------------
@@ -7,10 +10,58 @@ namespace DBDataLibrary.Tables
     // --                DO NOT MODIFY!!!                --
     // -- ANY CHANGE WILL BE LOST AT THE NEXT GENERATION --
     //  --------------------------------------------------
-    [TableType(TableTypes.Undefined)]
-    public partial class MfcConvItemToReject : ACrudBase<MfcConvItemToReject, MfcConvItemToReject_data>
+    [TableName("MFC_CONV_ITEM_TO_REJECT")]
+    public partial class MfcConvItemToReject : ACrudBase<MfcConvItemToReject>
     {
         public MfcConvItemToReject() : base() { }
-        public override string TableName => "MFC_CONV_ITEM_TO_REJECT";
+        
+        [NonSerialized] private string _cdItem = "";
+        [ColumnName("CD_ITEM")]
+        [Required]
+        public string CdItem
+        {
+            get => _cdItem;
+            set
+            {
+                if (!Equals(_cdItem, value))
+                {
+                    _cdItem = value;
+                    AddModifiedProperty(nameof(CdItem));
+                }
+            }
+        }
+
+        [NonSerialized] private string _constrain = "";
+        [ColumnName("CONSTRAIN")]
+        [Required]
+        public string Constrain
+        {
+            get => _constrain;
+            set
+            {
+                if (!Equals(_constrain, value))
+                {
+                    _constrain = value;
+                    AddModifiedProperty(nameof(Constrain));
+                }
+            }
+        }
+
+        [NonSerialized] private string _cdRejectItem = "";
+        [ColumnName("CD_REJECT_ITEM")]
+        [Required]
+        public string CdRejectItem
+        {
+            get => _cdRejectItem;
+            set
+            {
+                if (!Equals(_cdRejectItem, value))
+                {
+                    _cdRejectItem = value;
+                    AddModifiedProperty(nameof(CdRejectItem));
+                }
+            }
+        }
+
     }
 }

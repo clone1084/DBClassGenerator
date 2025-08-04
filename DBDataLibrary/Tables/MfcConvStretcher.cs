@@ -1,5 +1,8 @@
+using System;
+using System.ComponentModel.DataAnnotations;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
+
 namespace DBDataLibrary.Tables
 {
     //  --------------------------------------------------
@@ -7,10 +10,40 @@ namespace DBDataLibrary.Tables
     // --                DO NOT MODIFY!!!                --
     // -- ANY CHANGE WILL BE LOST AT THE NEXT GENERATION --
     //  --------------------------------------------------
-    [TableType(TableTypes.Undefined)]
-    public partial class MfcConvStretcher : ACrudBase<MfcConvStretcher, MfcConvStretcher_data>
+    [TableName("MFC_CONV_STRETCHER")]
+    public partial class MfcConvStretcher : ACrudBase<MfcConvStretcher>
     {
         public MfcConvStretcher() : base() { }
-        public override string TableName => "MFC_CONV_STRETCHER";
+        
+        [NonSerialized] private string _cdItem;
+        [ColumnName("CD_ITEM")]
+        public string CdItem
+        {
+            get => _cdItem;
+            set
+            {
+                if (!Equals(_cdItem, value))
+                {
+                    _cdItem = value;
+                    AddModifiedProperty(nameof(CdItem));
+                }
+            }
+        }
+
+        [NonSerialized] private int? _flStatus;
+        [ColumnName("FL_STATUS")]
+        public int? FlStatus
+        {
+            get => _flStatus;
+            set
+            {
+                if (!Equals(_flStatus, value))
+                {
+                    _flStatus = value;
+                    AddModifiedProperty(nameof(FlStatus));
+                }
+            }
+        }
+
     }
 }

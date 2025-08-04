@@ -1,5 +1,8 @@
+using System;
+using System.ComponentModel.DataAnnotations;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
+
 namespace DBDataLibrary.Tables
 {
     //  --------------------------------------------------
@@ -7,10 +10,57 @@ namespace DBDataLibrary.Tables
     // --                DO NOT MODIFY!!!                --
     // -- ANY CHANGE WILL BE LOST AT THE NEXT GENERATION --
     //  --------------------------------------------------
-    [TableType(TableTypes.Undefined)]
-    public partial class MfcConvProfileCheck : ACrudBase<MfcConvProfileCheck, MfcConvProfileCheck_data>
+    [TableName("MFC_CONV_PROFILE_CHECK")]
+    public partial class MfcConvProfileCheck : ACrudBase<MfcConvProfileCheck>
     {
         public MfcConvProfileCheck() : base() { }
-        public override string TableName => "MFC_CONV_PROFILE_CHECK";
+        
+        [NonSerialized] private string _cdItem;
+        [ColumnName("CD_ITEM")]
+        [Key]
+        public string CdItem
+        {
+            get => _cdItem;
+            set
+            {
+                if (!Equals(_cdItem, value))
+                {
+                    _cdItem = value;
+                    AddModifiedProperty(nameof(CdItem));
+                }
+            }
+        }
+
+        [NonSerialized] private string _cdField;
+        [ColumnName("CD_FIELD")]
+        [Key]
+        public string CdField
+        {
+            get => _cdField;
+            set
+            {
+                if (!Equals(_cdField, value))
+                {
+                    _cdField = value;
+                    AddModifiedProperty(nameof(CdField));
+                }
+            }
+        }
+
+        [NonSerialized] private string _value;
+        [ColumnName("VALUE")]
+        public string Value
+        {
+            get => _value;
+            set
+            {
+                if (!Equals(_value, value))
+                {
+                    _value = value;
+                    AddModifiedProperty(nameof(Value));
+                }
+            }
+        }
+
     }
 }

@@ -1,5 +1,8 @@
+using System;
+using System.ComponentModel.DataAnnotations;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
+
 namespace DBDataLibrary.Tables
 {
     //  --------------------------------------------------
@@ -7,10 +10,86 @@ namespace DBDataLibrary.Tables
     // --                DO NOT MODIFY!!!                --
     // -- ANY CHANGE WILL BE LOST AT THE NEXT GENERATION --
     //  --------------------------------------------------
-    [TableType(TableTypes.Undefined)]
-    public partial class MfcConvEmptyLine : ACrudBase<MfcConvEmptyLine, MfcConvEmptyLine_data>
+    [TableName("MFC_CONV_EMPTY_LINE")]
+    public partial class MfcConvEmptyLine : ACrudBase<MfcConvEmptyLine>
     {
         public MfcConvEmptyLine() : base() { }
-        public override string TableName => "MFC_CONV_EMPTY_LINE";
+        
+        [NonSerialized] private int _cdLine = default(int);
+        [ColumnName("CD_LINE")]
+        [Required]
+        public int CdLine
+        {
+            get => _cdLine;
+            set
+            {
+                if (!Equals(_cdLine, value))
+                {
+                    _cdLine = value;
+                    AddModifiedProperty(nameof(CdLine));
+                }
+            }
+        }
+
+        [NonSerialized] private string _dscLine;
+        [ColumnName("DSC_LINE")]
+        public string DscLine
+        {
+            get => _dscLine;
+            set
+            {
+                if (!Equals(_dscLine, value))
+                {
+                    _dscLine = value;
+                    AddModifiedProperty(nameof(DscLine));
+                }
+            }
+        }
+
+        [NonSerialized] private int? _tpUdm;
+        [ColumnName("TP_UDM")]
+        public int? TpUdm
+        {
+            get => _tpUdm;
+            set
+            {
+                if (!Equals(_tpUdm, value))
+                {
+                    _tpUdm = value;
+                    AddModifiedProperty(nameof(TpUdm));
+                }
+            }
+        }
+
+        [NonSerialized] private int? _enable;
+        [ColumnName("ENABLE")]
+        public int? Enable
+        {
+            get => _enable;
+            set
+            {
+                if (!Equals(_enable, value))
+                {
+                    _enable = value;
+                    AddModifiedProperty(nameof(Enable));
+                }
+            }
+        }
+
+        [NonSerialized] private int? _autoExtractionEnabled;
+        [ColumnName("AUTO_EXTRACTION_ENABLED")]
+        public int? AutoExtractionEnabled
+        {
+            get => _autoExtractionEnabled;
+            set
+            {
+                if (!Equals(_autoExtractionEnabled, value))
+                {
+                    _autoExtractionEnabled = value;
+                    AddModifiedProperty(nameof(AutoExtractionEnabled));
+                }
+            }
+        }
+
     }
 }

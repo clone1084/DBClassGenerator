@@ -1,5 +1,8 @@
+using System;
+using System.ComponentModel.DataAnnotations;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
+
 namespace DBDataLibrary.Tables
 {
     //  --------------------------------------------------
@@ -7,10 +10,135 @@ namespace DBDataLibrary.Tables
     // --                DO NOT MODIFY!!!                --
     // -- ANY CHANGE WILL BE LOST AT THE NEXT GENERATION --
     //  --------------------------------------------------
-    [TableType(TableTypes.Undefined)]
-    public partial class MfcConvEventConfigThread : ACrudBase<MfcConvEventConfigThread, MfcConvEventConfigThread_data>
+    [TableName("MFC_CONV_EVENT_CONFIG_THREAD")]
+    public partial class MfcConvEventConfigThread : ACrudBase<MfcConvEventConfigThread>
     {
         public MfcConvEventConfigThread() : base() { }
-        public override string TableName => "MFC_CONV_EVENT_CONFIG_THREAD";
+        
+        [NonSerialized] private long _oid;
+        [ColumnName("OID")]
+        [Key]
+        public long Oid
+        {
+            get => _oid;
+            set
+            {
+                if (!Equals(_oid, value))
+                {
+                    _oid = value;
+                    AddModifiedProperty(nameof(Oid));
+                }
+            }
+        }
+
+        [NonSerialized] private string _name = "";
+        [ColumnName("NAME")]
+        [Required]
+        public string Name
+        {
+            get => _name;
+            set
+            {
+                if (!Equals(_name, value))
+                {
+                    _name = value;
+                    AddModifiedProperty(nameof(Name));
+                }
+            }
+        }
+
+        [NonSerialized] private int? _priorityFrom;
+        [ColumnName("PRIORITY_FROM")]
+        public int? PriorityFrom
+        {
+            get => _priorityFrom;
+            set
+            {
+                if (!Equals(_priorityFrom, value))
+                {
+                    _priorityFrom = value;
+                    AddModifiedProperty(nameof(PriorityFrom));
+                }
+            }
+        }
+
+        [NonSerialized] private int? _priorityTo;
+        [ColumnName("PRIORITY_TO")]
+        public int? PriorityTo
+        {
+            get => _priorityTo;
+            set
+            {
+                if (!Equals(_priorityTo, value))
+                {
+                    _priorityTo = value;
+                    AddModifiedProperty(nameof(PriorityTo));
+                }
+            }
+        }
+
+        [NonSerialized] private int _plc = default(int);
+        [ColumnName("PLC")]
+        [Required]
+        public int Plc
+        {
+            get => _plc;
+            set
+            {
+                if (!Equals(_plc, value))
+                {
+                    _plc = value;
+                    AddModifiedProperty(nameof(Plc));
+                }
+            }
+        }
+
+        [NonSerialized] private int _timer = default(int);
+        [ColumnName("TIMER")]
+        [Required]
+        public int Timer
+        {
+            get => _timer;
+            set
+            {
+                if (!Equals(_timer, value))
+                {
+                    _timer = value;
+                    AddModifiedProperty(nameof(Timer));
+                }
+            }
+        }
+
+        [NonSerialized] private int? _eventGroup;
+        [ColumnName("EVENT_GROUP")]
+        public int? EventGroup
+        {
+            get => _eventGroup;
+            set
+            {
+                if (!Equals(_eventGroup, value))
+                {
+                    _eventGroup = value;
+                    AddModifiedProperty(nameof(EventGroup));
+                }
+            }
+        }
+
+        [NonSerialized] private string _processName = "";
+        [ColumnName("PROCESS_NAME")]
+        [Required]
+        public string ProcessName
+        {
+            get => _processName;
+            set
+            {
+                if (!Equals(_processName, value))
+                {
+                    _processName = value;
+                    AddModifiedProperty(nameof(ProcessName));
+                }
+            }
+        }
+
     }
 }

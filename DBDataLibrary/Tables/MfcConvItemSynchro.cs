@@ -1,5 +1,8 @@
+using System;
+using System.ComponentModel.DataAnnotations;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
+
 namespace DBDataLibrary.Tables
 {
     //  --------------------------------------------------
@@ -7,10 +10,72 @@ namespace DBDataLibrary.Tables
     // --                DO NOT MODIFY!!!                --
     // -- ANY CHANGE WILL BE LOST AT THE NEXT GENERATION --
     //  --------------------------------------------------
-    [TableType(TableTypes.Undefined)]
-    public partial class MfcConvItemSynchro : ACrudBase<MfcConvItemSynchro, MfcConvItemSynchro_data>
+    [TableName("MFC_CONV_ITEM_SYNCHRO")]
+    public partial class MfcConvItemSynchro : ACrudBase<MfcConvItemSynchro>
     {
         public MfcConvItemSynchro() : base() { }
-        public override string TableName => "MFC_CONV_ITEM_SYNCHRO";
+        
+        [NonSerialized] private string _cdItem;
+        [ColumnName("CD_ITEM")]
+        [Key]
+        public string CdItem
+        {
+            get => _cdItem;
+            set
+            {
+                if (!Equals(_cdItem, value))
+                {
+                    _cdItem = value;
+                    AddModifiedProperty(nameof(CdItem));
+                }
+            }
+        }
+
+        [NonSerialized] private int? _flPltReady;
+        [ColumnName("FL_PLT_READY")]
+        public int? FlPltReady
+        {
+            get => _flPltReady;
+            set
+            {
+                if (!Equals(_flPltReady, value))
+                {
+                    _flPltReady = value;
+                    AddModifiedProperty(nameof(FlPltReady));
+                }
+            }
+        }
+
+        [NonSerialized] private int? _oidUdm;
+        [ColumnName("OID_UDM")]
+        public int? OidUdm
+        {
+            get => _oidUdm;
+            set
+            {
+                if (!Equals(_oidUdm, value))
+                {
+                    _oidUdm = value;
+                    AddModifiedProperty(nameof(OidUdm));
+                }
+            }
+        }
+
+        [NonSerialized] private DateTime _dtUpdate = DateTime.MinValue;
+        [ColumnName("DT_UPDATE")]
+        [Required]
+        public DateTime DtUpdate
+        {
+            get => _dtUpdate;
+            set
+            {
+                if (!Equals(_dtUpdate, value))
+                {
+                    _dtUpdate = value;
+                    AddModifiedProperty(nameof(DtUpdate));
+                }
+            }
+        }
+
     }
 }

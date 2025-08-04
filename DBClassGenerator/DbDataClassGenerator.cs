@@ -13,7 +13,6 @@ namespace DBClassGenerator
         static string targetNamespace = "GeneratedNamespace";
         static string outputDirectory = Directory.GetCurrentDirectory();
         static string tableNameFilter = "";
-        static bool generateCrudClasses = false;
 
         public static void GenerateClasses(string[] args)
         {
@@ -69,14 +68,15 @@ namespace DBClassGenerator
                 var columns = GetColumns(conn, tableName);
                 var classCode = GenerateClassCode(tableName, columns, conn);
 
-                File.WriteAllText(Path.Combine(outputDirectory, $"{NormalizeName(tableName)}_data.cs"), classCode);
-                Console.WriteLine($"    Generated: {NormalizeName(tableName)}_data.cs");
+                File.WriteAllText(Path.Combine(outputDirectory, $"{NormalizeName(tableName)}.cs"), classCode);
+                Console.WriteLine($"    Generated: {NormalizeName(tableName)}.cs");
 
-                if (generateCrudClasses)
+                string extensionFileName = Path.Combine(outputDirectory, $"{NormalizeName(tableName)}.extension.cs");
+                if (!File.Exists(extensionFileName))
                 {
-                    var crudCode = GenerateCrudClassCode(tableName);
-                    File.WriteAllText(Path.Combine(outputDirectory, $"{NormalizeName(tableName)}.cs"), crudCode);
-                    Console.WriteLine($"    Generated: {NormalizeName(tableName)}.cs");
+                    var extensionClassCode = GenerateExtensionClassCode(tableName);
+                    File.WriteAllText(extensionFileName, extensionClassCode);
+                    Console.WriteLine($"    Generated: {NormalizeName(tableName)}.extension.cs");
                 }
             }
 
@@ -94,7 +94,6 @@ namespace DBClassGenerator
                 if (args[i] == "-ns") targetNamespace = args[i + 1];
                 if (args[i] == "-out") outputDirectory = args[i + 1];
                 if (args[i] == "-tn") tableNameFilter = args[i + 1];
-                if (args[i] == "-gc") generateCrudClasses = args[i + 1].Trim().ToUpper() == "Y";
             }
 
             if (!Directory.Exists(outputDirectory))
@@ -106,7 +105,6 @@ namespace DBClassGenerator
             Console.WriteLine($"TableName(s): {tableNameFilter}");
             Console.WriteLine($"NameSpace: {targetNamespace}");
             Console.WriteLine($"OutputDirectory: {outputDirectory}");
-            Console.WriteLine($"Generate CRUD classes: {generateCrudClasses}");
         }
 
         static List<string> GetTables(OracleConnection conn, string filter)
@@ -154,6 +152,10 @@ namespace DBClassGenerator
 
         static string MapOracleTypeToCSharp(string oracleType, int? precision, int? scale, bool isNullable)
         {
+            if (oracleType.Contains("("))
+            {
+                oracleType = oracleType.Substring(0, oracleType.IndexOf("("));
+            }
             string type = oracleType switch
             {
                 "NUMBER" => (scale ?? 0) > 0 ? "decimal"
@@ -191,7 +193,7 @@ namespace DBClassGenerator
             sb.AppendLine("using System;");
             sb.AppendLine("using System.ComponentModel.DataAnnotations;");
             sb.AppendLine("using DBDataLibrary.Attributes;");
-            sb.AppendLine("using DBDataLibrary.DataTypes;");
+            sb.AppendLine("using DBDataLibrary.CRUD;");
             sb.AppendLine();
 
             if (!string.IsNullOrWhiteSpace(targetNamespace))
@@ -206,45 +208,63 @@ namespace DBClassGenerator
             sb.AppendLine($"    // -- ANY CHANGE WILL BE LOST AT THE NEXT GENERATION --"); 
             sb.AppendLine($"    //  --------------------------------------------------");
 
-            string dataClassName = $"{NormalizeName(table)}_data";
+            string dataClassName = $"{NormalizeName(table)}";
 
-            //sb.AppendLine($"    public partial class {table}_data : ADBData");
-            sb.AppendLine($"    public partial class {dataClassName}: ADBData");
+            sb.AppendLine($"    [TableName(\"{table}\")]");
+            sb.AppendLine($"    public partial class {dataClassName} : ACrudBase<{dataClassName}>");
             sb.AppendLine("    {");
+            sb.AppendLine($"        public {NormalizeName(table)}() : base() {{ }}");
+
+            sb.AppendLine($"        ");
 
             var primaryKeys = GetPrimaryKeys(conn, table);
 
             foreach (var col in columns)
             {
                 var type = MapOracleTypeToCSharp(col.DataType, col.Precision, col.Scale, col.IsNullable);
-                var prop = NormalizeName(col.Name);
-
-                sb.AppendLine($"        [ColumnName(\"{col.Name}\")]");
+                var propName = NormalizeName(col.Name);
+                var fieldName = "_" + char.ToLower(propName[0]) + propName.Substring(1);
 
                 bool isPrimaryKey = primaryKeys.Contains(col.Name);
                 bool isRequired = !col.IsNullable && !isPrimaryKey;
 
+                // Field declaration
+                string fieldInitializer = ";";
+                if (isRequired)
+                {
+                    if (type == "string")
+                        fieldInitializer = " = \"\";";
+                    else if (type == "DateTime")
+                        fieldInitializer = " = DateTime.MinValue;";
+                    else if (!type.EndsWith("?"))
+                        fieldInitializer = $" = default({type});";
+                }
+
+                sb.AppendLine($"        [NonSerialized] private {type} {fieldName}{fieldInitializer}");
+
+                sb.AppendLine($"        [ColumnName(\"{col.Name}\")]");
                 if (isPrimaryKey)
                     sb.AppendLine("        [Key]");
 
                 if (isRequired)
                     sb.AppendLine("        [Required]");
 
-                // inizializzazione: solo se Required
-                string initializer = "";
-                if (isRequired)
-                {
-                    if (type == "string")
-                        initializer = " = \"\";";
-                    else if (type == "DateTime")
-                        initializer = " = DateTime.MinValue;";
-                    else if (!type.EndsWith("?"))
-                        initializer = $" = default({type});";
-
-                }
-
-                sb.AppendLine($"        public {type} {prop} {{ get; set; }}{initializer}");
+                // Property with notification
+                sb.AppendLine($"        public {type} {propName}");
+                sb.AppendLine("        {");
+                sb.AppendLine($"            get => {fieldName};");
+                sb.AppendLine("            set");
+                sb.AppendLine("            {");
+                sb.AppendLine($"                if (!Equals({fieldName}, value))");
+                sb.AppendLine("                {");
+                sb.AppendLine($"                    {fieldName} = value;");
+                sb.AppendLine($"                    AddModifiedProperty(nameof({propName}));");
+                sb.AppendLine("                }");
+                sb.AppendLine("            }");
+                sb.AppendLine("        }");
+                sb.AppendLine();
             }
+
 
             sb.AppendLine("    }");
 
@@ -256,11 +276,14 @@ namespace DBClassGenerator
             return sb.ToString();
         }
 
-        static string GenerateCrudClassCode(string table)
+        static string GenerateExtensionClassCode(string table)
         {
-            var sb = new StringBuilder(); 
+            var sb = new StringBuilder();
+            sb.AppendLine("using System;");
+            sb.AppendLine("using System.ComponentModel.DataAnnotations;");
             sb.AppendLine("using DBDataLibrary.Attributes;");
             sb.AppendLine("using DBDataLibrary.CRUD;");
+            sb.AppendLine();
 
             if (!string.IsNullOrWhiteSpace(targetNamespace))
             {
@@ -268,20 +291,19 @@ namespace DBClassGenerator
                 sb.AppendLine($"{{");
             }
 
-            sb.AppendLine($"    //  --------------------------------------------------");
-            sb.AppendLine($"    // --            AUTOMATIC GENERATED CLASS           --");
-            sb.AppendLine($"    // --                DO NOT MODIFY!!!                --");
-            sb.AppendLine($"    // -- ANY CHANGE WILL BE LOST AT THE NEXT GENERATION --");
-            sb.AppendLine($"    //  --------------------------------------------------");
+            sb.AppendLine($"    //  -------------------------------------------");
+            sb.AppendLine($"    // --            CUSTOMIZABLE CLASS           --");
+            sb.AppendLine($"    // --                   ***                   --");
+            sb.AppendLine($"    // --          CHANGES HERE ARE SAFE!         --");
+            sb.AppendLine($"    //  -------------------------------------------");
 
-            string crudClassName = NormalizeName(table);
-            string dataClassName = $"{crudClassName}_data";
+            string dataClassName = $"{NormalizeName(table)}";
 
-            sb.AppendLine("    [TableType(TableTypes.Undefined)]");
-            sb.AppendLine($"    public partial class {crudClassName} : ACrudBase<{crudClassName}, {dataClassName}>");
+            sb.AppendLine($"    // TODO Customize the TableType to allow more functions of the table");
+            sb.AppendLine($"    [TableType(TableTypes.Undefined)]");
+            sb.AppendLine($"    public partial class {dataClassName}");
             sb.AppendLine("    {");
-            sb.AppendLine($"        public {NormalizeName(table)}() : base() {{ }}");
-            sb.AppendLine($"        public override string TableName => \"{table}\";"); 
+            sb.AppendLine("         // Insert your customizations in this class");
             sb.AppendLine("    }");
 
             if (!string.IsNullOrWhiteSpace(targetNamespace))

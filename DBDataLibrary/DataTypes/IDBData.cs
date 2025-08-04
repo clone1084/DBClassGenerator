@@ -10,10 +10,6 @@ namespace DBDataLibrary.DataTypes
 {
     public interface IDBData
     {
-        //[ColumnName("OID")]
-        //decimal Oid { get; set; }
-
-        //[ColumnName("DT_INSERT")]
-        //DateTime DtInsert { get; set; }
+        void SetCrudClass(ICrudClass aCrudBase);
     }
 }

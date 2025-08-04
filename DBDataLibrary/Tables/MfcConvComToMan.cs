@@ -1,5 +1,8 @@
+using System;
+using System.ComponentModel.DataAnnotations;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
+
 namespace DBDataLibrary.Tables
 {
     //  --------------------------------------------------
@@ -7,10 +10,118 @@ namespace DBDataLibrary.Tables
     // --                DO NOT MODIFY!!!                --
     // -- ANY CHANGE WILL BE LOST AT THE NEXT GENERATION --
     //  --------------------------------------------------
-    [TableType(TableTypes.Undefined)]
-    public partial class MfcConvComToMan : ACrudBase<MfcConvComToMan, MfcConvComToMan_data>
+    [TableName("MFC_CONV_COM_TO_MAN")]
+    public partial class MfcConvComToMan : ACrudBase<MfcConvComToMan>
     {
         public MfcConvComToMan() : base() { }
-        public override string TableName => "MFC_CONV_COM_TO_MAN";
+        
+        [NonSerialized] private long _oid = default(long);
+        [ColumnName("OID")]
+        [Required]
+        public long Oid
+        {
+            get => _oid;
+            set
+            {
+                if (!Equals(_oid, value))
+                {
+                    _oid = value;
+                    AddModifiedProperty(nameof(Oid));
+                }
+            }
+        }
+
+        [NonSerialized] private string _message = "";
+        [ColumnName("MESSAGE")]
+        [Required]
+        public string Message
+        {
+            get => _message;
+            set
+            {
+                if (!Equals(_message, value))
+                {
+                    _message = value;
+                    AddModifiedProperty(nameof(Message));
+                }
+            }
+        }
+
+        [NonSerialized] private DateTime _dtInsert = DateTime.MinValue;
+        [ColumnName("DT_INSERT")]
+        [Required]
+        public DateTime DtInsert
+        {
+            get => _dtInsert;
+            set
+            {
+                if (!Equals(_dtInsert, value))
+                {
+                    _dtInsert = value;
+                    AddModifiedProperty(nameof(DtInsert));
+                }
+            }
+        }
+
+        [NonSerialized] private string _localEndpointCode;
+        [ColumnName("LOCAL_ENDPOINT_CODE")]
+        public string LocalEndpointCode
+        {
+            get => _localEndpointCode;
+            set
+            {
+                if (!Equals(_localEndpointCode, value))
+                {
+                    _localEndpointCode = value;
+                    AddModifiedProperty(nameof(LocalEndpointCode));
+                }
+            }
+        }
+
+        [NonSerialized] private string _remoteEndpointCode;
+        [ColumnName("REMOTE_ENDPOINT_CODE")]
+        public string RemoteEndpointCode
+        {
+            get => _remoteEndpointCode;
+            set
+            {
+                if (!Equals(_remoteEndpointCode, value))
+                {
+                    _remoteEndpointCode = value;
+                    AddModifiedProperty(nameof(RemoteEndpointCode));
+                }
+            }
+        }
+
+        [NonSerialized] private string _messageType;
+        [ColumnName("MESSAGE_TYPE")]
+        public string MessageType
+        {
+            get => _messageType;
+            set
+            {
+                if (!Equals(_messageType, value))
+                {
+                    _messageType = value;
+                    AddModifiedProperty(nameof(MessageType));
+                }
+            }
+        }
+
+        [NonSerialized] private string _messageCode;
+        [ColumnName("MESSAGE_CODE")]
+        public string MessageCode
+        {
+            get => _messageCode;
+            set
+            {
+                if (!Equals(_messageCode, value))
+                {
+                    _messageCode = value;
+                    AddModifiedProperty(nameof(MessageCode));
+                }
+            }
+        }
+
     }
 }

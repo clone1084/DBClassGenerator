@@ -1,5 +1,8 @@
+using System;
+using System.ComponentModel.DataAnnotations;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
+
 namespace DBDataLibrary.Tables
 {
     //  --------------------------------------------------
@@ -7,10 +10,88 @@ namespace DBDataLibrary.Tables
     // --                DO NOT MODIFY!!!                --
     // -- ANY CHANGE WILL BE LOST AT THE NEXT GENERATION --
     //  --------------------------------------------------
-    [TableType(TableTypes.Undefined)]
-    public partial class MfcConvAnomalies : ACrudBase<MfcConvAnomalies, MfcConvAnomalies_data>
+    [TableName("MFC_CONV_ANOMALIES")]
+    public partial class MfcConvAnomalies : ACrudBase<MfcConvAnomalies>
     {
         public MfcConvAnomalies() : base() { }
-        public override string TableName => "MFC_CONV_ANOMALIES";
+        
+        [NonSerialized] private string _cdZone = "";
+        [ColumnName("CD_ZONE")]
+        [Required]
+        public string CdZone
+        {
+            get => _cdZone;
+            set
+            {
+                if (!Equals(_cdZone, value))
+                {
+                    _cdZone = value;
+                    AddModifiedProperty(nameof(CdZone));
+                }
+            }
+        }
+
+        [NonSerialized] private DateTime _dtStartAnomaly = DateTime.MinValue;
+        [ColumnName("DT_START_ANOMALY")]
+        [Required]
+        public DateTime DtStartAnomaly
+        {
+            get => _dtStartAnomaly;
+            set
+            {
+                if (!Equals(_dtStartAnomaly, value))
+                {
+                    _dtStartAnomaly = value;
+                    AddModifiedProperty(nameof(DtStartAnomaly));
+                }
+            }
+        }
+
+        [NonSerialized] private DateTime? _dtEndAnomaly;
+        [ColumnName("DT_END_ANOMALY")]
+        public DateTime? DtEndAnomaly
+        {
+            get => _dtEndAnomaly;
+            set
+            {
+                if (!Equals(_dtEndAnomaly, value))
+                {
+                    _dtEndAnomaly = value;
+                    AddModifiedProperty(nameof(DtEndAnomaly));
+                }
+            }
+        }
+
+        [NonSerialized] private int _cdError = default(int);
+        [ColumnName("CD_ERROR")]
+        [Required]
+        public int CdError
+        {
+            get => _cdError;
+            set
+            {
+                if (!Equals(_cdError, value))
+                {
+                    _cdError = value;
+                    AddModifiedProperty(nameof(CdError));
+                }
+            }
+        }
+
+        [NonSerialized] private int? _tpError;
+        [ColumnName("TP_ERROR")]
+        public int? TpError
+        {
+            get => _tpError;
+            set
+            {
+                if (!Equals(_tpError, value))
+                {
+                    _tpError = value;
+                    AddModifiedProperty(nameof(TpError));
+                }
+            }
+        }
+
     }
 }

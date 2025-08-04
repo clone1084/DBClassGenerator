@@ -1,5 +1,8 @@
+using System;
+using System.ComponentModel.DataAnnotations;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
+
 namespace DBDataLibrary.Tables
 {
     //  --------------------------------------------------
@@ -7,10 +10,42 @@ namespace DBDataLibrary.Tables
     // --                DO NOT MODIFY!!!                --
     // -- ANY CHANGE WILL BE LOST AT THE NEXT GENERATION --
     //  --------------------------------------------------
-    [TableType(TableTypes.Undefined)]
-    public partial class MfcConvIoLift : ACrudBase<MfcConvIoLift, MfcConvIoLift_data>
+    [TableName("MFC_CONV_IO_LIFT")]
+    public partial class MfcConvIoLift : ACrudBase<MfcConvIoLift>
     {
         public MfcConvIoLift() : base() { }
-        public override string TableName => "MFC_CONV_IO_LIFT";
+        
+        [NonSerialized] private int _cdLift = default(int);
+        [ColumnName("CD_LIFT")]
+        [Required]
+        public int CdLift
+        {
+            get => _cdLift;
+            set
+            {
+                if (!Equals(_cdLift, value))
+                {
+                    _cdLift = value;
+                    AddModifiedProperty(nameof(CdLift));
+                }
+            }
+        }
+
+        [NonSerialized] private string _cdItemIn = "";
+        [ColumnName("CD_ITEM_IN")]
+        [Required]
+        public string CdItemIn
+        {
+            get => _cdItemIn;
+            set
+            {
+                if (!Equals(_cdItemIn, value))
+                {
+                    _cdItemIn = value;
+                    AddModifiedProperty(nameof(CdItemIn));
+                }
+            }
+        }
+
     }
 }
