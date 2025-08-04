@@ -61,6 +61,23 @@ namespace CRUDTestApp
 
                 LogInfo($"Found {typesToTest.Count} tables to test");
 
+
+                MfcConvMovements mov = new MfcConvMovements()
+                {
+                    ActualType = 2,
+                    ActualPar1 = 1001,
+                    StartType = 2,
+                    StartPar1 = 1001,
+                    DestType = 6,
+                    DestPar1 = 2001,
+                    Constraint = "NORM",
+                    OidUdm = 123,
+                    Priority = 1,
+                };
+
+                LogInfo($"Inserted MfcConvMovements with Oid: {mov.Oid}");
+                
+
                 Console.Write("Proceed? (Y/N): ");
                 var proceed = Console.ReadLine()?.Trim().ToUpper();
                 if (proceed != "Y")
@@ -93,7 +110,7 @@ namespace CRUDTestApp
 
                         TableTypes tableType = tableTypeAttribute.TableType;
 
-                        Log2Colors($"    TableName", $"{tableType}", secondColor: ConsoleColor.White);
+                        Log2Colors($"    TableType", $"{tableType}", secondColor: ConsoleColor.White);
 
                         // CONDITIONAL EXECUTION BASED ON ATTRIBUTE FLAGS
 

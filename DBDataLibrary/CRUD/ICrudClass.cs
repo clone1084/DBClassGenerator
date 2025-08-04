@@ -6,6 +6,7 @@ namespace DBDataLibrary.CRUD
     {        
         string TableName { get; }
         bool Delete(IDbConnection connection);
+        IEnumerable<string> GetKeys();
         Dictionary<string, object> GetKeyValues();
         bool Insert(IDbConnection connection);
         bool Update(IDbConnection connection);

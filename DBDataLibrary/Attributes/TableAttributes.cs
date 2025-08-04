@@ -30,14 +30,17 @@ namespace DBDataLibrary.Attributes
     [Flags]
     public enum TableTypes
     {
-        Undefined = 0<<0,        //0
+        Undefined = 0 << 0,        //0
         /// <summary>
-        /// This table is static, meaning it does not change and is not expected to be modified.
-        /// It is typically used for reference data or configuration settings.
+        /// Thi table is read-only, meaning it cannot be modified.
         /// </summary>
-        Static = 1<<0,      //1
-        Insertable = 1<<1,  //2
-        Updatable = 1<<2,   //4
-        Deletable = 1<<3,   //8
+        ReadOnly = 1 << 0,      //1
+        Insertable = 1 << 1,  //2
+        Updatable = 1 << 2,   //4
+        Deletable = 1 << 3,   //8
+        /// <summary>
+        /// This table is cached, meaning its data is stored in memory for faster access.
+        /// </summary>
+        Cached = 1 << 4,    //16
     }
 }

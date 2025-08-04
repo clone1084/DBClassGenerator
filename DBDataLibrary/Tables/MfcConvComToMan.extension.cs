@@ -11,7 +11,7 @@ namespace DBDataLibrary.Tables
     // --          CHANGES HERE ARE SAFE!         --
     //  -------------------------------------------
     // TODO Customize the TableType to allow more functions of the table
-    [TableType(TableTypes.Undefined)]
+    [TableType(TableTypes.ReadOnly)]
     public partial class MfcConvComToMan
     {
          // Insert your customizations in this class

@@ -7,8 +7,15 @@ namespace DBDataLibrary.CRUD
     public abstract class ACrudBase<TClass> : ICrudClass<TClass> 
         where TClass : ACrudBase<TClass>, new()
     {
+        protected const string DT_INSERT_COLUMN = "DT_INSERT";
+        protected const string OID_COLUMN = "OID";
         protected const string DT_UPDATE_COLUMN = "DT_UPDATE";
+        
         protected HashSet<string> _modifiedProperties = new();
+
+        protected static IList<TClass> cachedEntities = new List<TClass>();
+
+        protected static readonly ReaderWriterLockSlim _cacheLock = new();
 
         protected ACrudBase() { }
 
@@ -58,10 +65,32 @@ namespace DBDataLibrary.CRUD
             return keyValues;
         }
 
-        protected List<PropertyInfo> GetKeyProperties()
+        public IEnumerable<string> GetKeys()
+        {
+            var keys = new List<string>();
+            var keyProps = GetKeyProperties(); // Reuse the existing method
+
+            foreach (var prop in keyProps)
+            {
+                // Get the column name, falling back to the property name if no attribute is present
+                string columnName = GetColumnName(prop);
+                keys.Add(columnName);
+            }
+
+            return keys;
+        }
+
+        protected static List<PropertyInfo> GetKeyProperties()
         {
             return typeof(TClass).GetProperties()
                 .Where(p => p.GetCustomAttribute<System.ComponentModel.DataAnnotations.KeyAttribute>() != null)
+                .ToList();
+        }
+
+        protected List<PropertyInfo> GetAllColumnsProperties()
+        {
+            return typeof(TClass).GetProperties()
+                .Where(p => p.GetCustomAttribute<ColumnNameAttribute>() != null)
                 .ToList();
         }
 
@@ -77,11 +106,29 @@ namespace DBDataLibrary.CRUD
                 throw new InvalidOperationException($"Insert is not allowed for table type '{typeof(TClass).Name}'.");
 
 
-            var keyProps = GetKeyProperties();
-            var insertableProps = GetKeyProperties();
+            var keyProps = GetKeyProperties(); 
+            var allProps = GetAllColumnsProperties();
 
-            var columnList = string.Join(", ", insertableProps.Select(GetColumnName));
-            var paramList = string.Join(", ", insertableProps.Select(p => ":" + GetColumnName(p)));
+            // OID_COLUMN is not insertable, because its auto populated, so we exclude it from the insertable properties
+            // DT_INSERT is inserted as SYSDATE by default, so we exclude it from the insertable properties
+            var insertableProps = allProps
+                .Where(p => !GetColumnName(p).Equals(OID_COLUMN, StringComparison.OrdinalIgnoreCase)
+                         && !GetColumnName(p).Equals(DT_INSERT_COLUMN, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            var dtInsertProp = allProps.FirstOrDefault(p => GetColumnName(p).Equals(DT_INSERT_COLUMN, StringComparison.OrdinalIgnoreCase));
+           
+            var columnListItems = insertableProps.Select(GetColumnName).ToList();
+            var paramListItems = insertableProps.Select(p => ":" + GetColumnName(p)).ToList();
+
+            if (dtInsertProp != null)
+            {
+                columnListItems.Add(DT_INSERT_COLUMN);
+                paramListItems.Add("SYSDATE");
+            }
+
+            var columnList = string.Join(", ", columnListItems);
+            var paramList = string.Join(", ", paramListItems);
 
             var returningClause = keyProps.Any()
                 ? $" RETURNING {string.Join(", ", keyProps.Select(GetColumnName))} INTO {string.Join(", ", keyProps.Select(p => ":" + GetColumnName(p) + "_OUT"))}"
@@ -256,23 +303,45 @@ namespace DBDataLibrary.CRUD
             return cmd.ExecuteNonQuery() > 0;
         }
 
-        public TClass Load(IDbConnection connection, params object[] keyValues)
+
+        public static TClass Load(IDbConnection connection, params KeyValuePair<string, object>[] keyValues)
         {
+            if (HasTableTypeFlag(TableTypes.Cached))
+            {
+                lock (_cacheLock)
+                {
+                    var cachedItem = cachedEntities.ToList().FirstOrDefault(e => e.GetKeyValues().SequenceEqual(keyValues));
+                    if (cachedItem != null)
+                    {
+                        return cachedItem;
+                    }
+                }
+            }
+
             var keyProps = GetKeyProperties();
             if (keyProps.Count != keyValues.Length)
                 throw new ArgumentException("Number of key values does not match number of [Key] properties.");
 
             var whereClause = string.Join(" AND ", keyProps.Select(p => $"{GetColumnName(p)} = :{GetColumnName(p)}"));
-            var sql = $"SELECT * FROM {TableName} WHERE {whereClause}";
+            var sql = $"SELECT * FROM {GetTableName()} WHERE {whereClause}";
 
             using var cmd = connection.CreateCommand();
             cmd.CommandText = sql;
 
+            var kvpDict = keyValues.ToDictionary(kv => kv.Key, kv => kv.Value);
+
             for (int i = 0; i < keyProps.Count; i++)
             {
+                var colName = GetColumnName(keyProps[i]);
+                if (!kvpDict.Keys.Contains(colName, StringComparer.OrdinalIgnoreCase))
+                {
+                    throw new ArgumentException($"Key value for '{colName}' is missing in the provided key values.");
+                }
+
+                // Abbino dinamicamente il valore della chiave al parametro corretto
                 var param = cmd.CreateParameter();
-                param.ParameterName = ":" + GetColumnName(keyProps[i]);
-                param.Value = keyValues[i];
+                param.ParameterName = ":" + colName;
+                param.Value = kvpDict[colName];
                 cmd.Parameters.Add(param);
             }
 
@@ -280,12 +349,25 @@ namespace DBDataLibrary.CRUD
             if (!reader.Read())
                 return default!;
 
-            var dataInstance = ReadData(reader);
-            _modifiedProperties.Clear();
-            return dataInstance;
+            var loadedInstance = ReadData(reader);
+
+            if (HasTableTypeFlag(TableTypes.Cached))
+            {
+                lock (_cacheLock)
+                {
+
+                    // Aggiungo l'istanza caricata alla cache
+                    if (!cachedEntities.Contains(loadedInstance))
+                    {
+                        cachedEntities.Add(loadedInstance);
+                    }
+                }
+            }
+
+            return loadedInstance;
         }
 
-        private TClass ReadData(IDataReader reader)
+        private static TClass ReadData(IDataReader reader)
         {
             var instance = new TClass();
             var props = typeof(TClass).GetProperties().ToDictionary(p => GetColumnName(p), p => p, StringComparer.OrdinalIgnoreCase);
@@ -309,11 +391,42 @@ namespace DBDataLibrary.CRUD
 
                 prop.SetValue(instance, value);
             }
+            // Clear the modified properties since we just loaded the data
+            instance._modifiedProperties.Clear();
             return instance;
         }
 
-        public static IEnumerable<TClass> LoadAll(IDbConnection connection, string whereFilter = "")
+        /// <summary>
+        /// This method retrieves all records of type TClass from the database.
+        /// </summary>
+        /// <param name="connection"></param>
+        /// <param name="whereFilter">In case of cached table, this filter will be ignored and you need to perform a <see cref="Where()"/></param> on the resuls of the method.
+        /// <param name="reloadCache">In case of cached table, this will flush the cached data e load fresh data from DB</param>
+        /// <returns></returns>
+        public static IEnumerable<TClass> LoadAll(IDbConnection connection, string whereFilter = "", bool reloadCache = false)
         {
+            if (HasTableTypeFlag(TableTypes.Cached))
+            {
+                lock (_cacheLock)
+                {
+                    if (reloadCache)
+                    {
+                        // If we are reloading the cache, we clear the cached entities
+                        cachedEntities.Clear();
+                    }
+
+                    if (cachedEntities.Any())
+                    {
+                        // If cache is not empty, we will return the cached entities
+                        return cachedEntities.ToList();
+                    }
+
+                    // If cache is empty, we will load from the database
+                    // and we will cache all the results
+                    whereFilter = string.Empty;
+                }
+            }
+
             var sql = $"SELECT * FROM {GetTableName()}";
             if (!string.IsNullOrWhiteSpace(whereFilter))
             {
@@ -327,15 +440,21 @@ namespace DBDataLibrary.CRUD
             var resultList = new List<TClass>();
             var type = typeof(TClass);
             var props = type.GetProperties().ToDictionary(p => GetColumnName(p), p => p, StringComparer.OrdinalIgnoreCase);
-            
-            
+
             while (reader.Read())
             {
-                var instanceObj = Activator.CreateInstance(typeof(TClass), true);
-                if (instanceObj is TClass instance)
+                var loadedInstance = ReadData(reader);
+                resultList.Add(loadedInstance);
+            }
+
+            if (HasTableTypeFlag(TableTypes.Cached))
+            {
+                lock (_cacheLock)
                 {
-                    instance.ReadData(reader);
-                    resultList.Add(instance);
+
+
+                    // Cache all the loaded entities
+                    cachedEntities = resultList;
                 }
             }
 
