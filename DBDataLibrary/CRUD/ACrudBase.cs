@@ -7,6 +7,7 @@ namespace DBDataLibrary.CRUD
     public abstract class ACrudBase<TClass> : ICrudClass<TClass> 
         where TClass : ACrudBase<TClass>, new()
     {
+        protected const string DT_UPDATE_COLUMN = "DT_UPDATE";
         protected HashSet<string> _modifiedProperties = new();
 
         protected ACrudBase() { }
@@ -157,7 +158,6 @@ namespace DBDataLibrary.CRUD
             return attr != null && attr.TableType.HasFlag(required);
         }
 
-
         public bool Update(IDbConnection connection)
         {
             if (!HasTableTypeFlag(TableTypes.Updatable))
@@ -187,7 +187,7 @@ namespace DBDataLibrary.CRUD
             foreach (var prop in propsModified)
             {
                 var column = GetColumnName(prop);
-                if (column.Equals("DT_UPDATE", StringComparison.OrdinalIgnoreCase))
+                if (column.Equals(DT_UPDATE_COLUMN, StringComparison.OrdinalIgnoreCase))
                 {
                     setAssignments.Add($"{column} = SYSDATE");
                 }
@@ -206,7 +206,7 @@ namespace DBDataLibrary.CRUD
             cmd.CommandText = sql;
 
             //foreach (var prop in propsModified)
-            foreach (var prop in propsModified.Where(p => !GetColumnName(p).Equals("DT_UPDATE", StringComparison.OrdinalIgnoreCase)))
+            foreach (var prop in propsModified.Where(p => !GetColumnName(p).Equals(DT_UPDATE_COLUMN, StringComparison.OrdinalIgnoreCase)))
             {
                 var param = cmd.CreateParameter();
                 param.ParameterName = ":" + GetColumnName(prop);
@@ -327,12 +327,12 @@ namespace DBDataLibrary.CRUD
             var resultList = new List<TClass>();
             var type = typeof(TClass);
             var props = type.GetProperties().ToDictionary(p => GetColumnName(p), p => p, StringComparer.OrdinalIgnoreCase);
-
+            
+            
             while (reader.Read())
             {
-                var instance = (TClass)Activator.CreateInstance(typeof(TClass), true);
-                // Fix: Verifica che instance non sia null prima di chiamare ReadData
-                if (instance != null)
+                var instanceObj = Activator.CreateInstance(typeof(TClass), true);
+                if (instanceObj is TClass instance)
                 {
                     instance.ReadData(reader);
                     resultList.Add(instance);
