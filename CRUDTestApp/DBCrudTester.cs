@@ -33,6 +33,10 @@ namespace CRUDTestApp
 
         public void Run()
         {
+            var log = log4net.LogManager.GetLogger(typeof(DBCrudTester));
+            string baseLogMessage = "[DBCrudTester]";
+
+
             if (string.IsNullOrEmpty(connectionString))
             {
                 LogError("Connection string is not provided. Use -cs to specify it.");
@@ -48,9 +52,9 @@ namespace CRUDTestApp
                 conn.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
                 LogInfo("Transaction started. All operations will be rolled back at the end.");
 
-                ManualTest(conn);
+                ManualTest(conn, log, baseLogMessage);
 
-                //AutomaticTestOfAllClasses(conn);
+                //AutomaticTestOfAllClasses(conn, log, baseLogMessage);
 
                 LogInfo();
                 LogInfo("All tests completed.");
@@ -63,7 +67,7 @@ namespace CRUDTestApp
             }
         }
 
-        private void ManualTest(Oracle.ManagedDataAccess.Client.OracleConnection conn)
+        private void ManualTest(Oracle.ManagedDataAccess.Client.OracleConnection conn, log4net.ILog log, string baseLogMessage)
         {
             MfcConvMovements mov = new MfcConvMovements()
             {
@@ -80,7 +84,7 @@ namespace CRUDTestApp
             };
 
             //DateTime start = DateTime.Now;
-            LogResult(mov.Insert(conn), "    ManualInsert MfcConvMovements");
+            LogResult(mov.Insert(conn, log, baseLogMessage), "    ManualInsert MfcConvMovements");
             LogInfo($"OID: {mov.Oid}, DT_INSERT: {mov.DtInsert}");
             //LogWarning($"Insert took {(DateTime.Now - start).TotalMilliseconds:N2} ms");
 
@@ -88,27 +92,27 @@ namespace CRUDTestApp
             mov.ActualPar1 = 2002;
             
             //start = DateTime.Now;
-            LogResult(mov.Update(conn), "    ManualUpdate ManToCom");
+            LogResult(mov.Update(conn, log, baseLogMessage), "    ManualUpdate ManToCom");
             LogInfo($"DtUpdated: {mov.DtUpdate}");
             //LogWarning($"Update took {(DateTime.Now - start).TotalMilliseconds:N2} ms");
 
             //start = DateTime.Now;
-            MfcConvMovements mov2 = MfcConvMovements.Load(conn, new KeyValuePair<string, object>("OID", mov.Oid));
+            MfcConvMovements mov2 = MfcConvMovements.Load(conn, log, baseLogMessage, new KeyValuePair<string, object>("OID", mov.Oid));
             //LogWarning($"ManualLoad took {(DateTime.Now - start).TotalMilliseconds:N2} ms");
             LogResult(mov2 != null, "    ManualLoad ManToCom");
             LogResult(mov2 != null && mov2.Oid == mov.Oid, "ManualLoad have the same OID of ManualInsert");
             LogInfo($"DB Loaded actual position: {mov2.ActualPar1} DtUpdate: {mov2.DtUpdate}");
 
             //start = DateTime.Now;
-            var allMtc = MfcConvMovements.LoadAll(conn);
+            var allMtc = MfcConvMovements.LoadAll(conn, log, baseLogMessage);
             //LogWarning($"ManualLoadAll took {(DateTime.Now - start).TotalMilliseconds:N2} ms");
             LogResult(allMtc?.Count() != 0, "    ManualLoadAll MfcConvMovements");
             LogInfo($"Loaded {allMtc?.Count()} MfcConvManToCom records from DB");
 
-            LogResult(mov.Delete(conn), "    ManualDelete ManToCom");
+            LogResult(mov.Delete(conn, log, baseLogMessage), "    ManualDelete ManToCom");
         }
 
-        private void AutomaticTestOfAllClasses(Oracle.ManagedDataAccess.Client.OracleConnection conn)
+        private void AutomaticTestOfAllClasses(Oracle.ManagedDataAccess.Client.OracleConnection conn, log4net.ILog log, string baseLogMessage)
         {
             var baseType = typeof(DBDataLibrary.CRUD.ACrudBase<>);
 
@@ -163,7 +167,7 @@ namespace CRUDTestApp
                     // INSERT
                     if ((tableType & TableTypes.Insertable) == TableTypes.Insertable)
                     {
-                        InsertTest(conn, type, crudInstance);
+                        InsertTest(conn, type, crudInstance, log, baseLogMessage);
                     }
                     else
                     {
@@ -174,7 +178,7 @@ namespace CRUDTestApp
 
                     if ((tableType & TableTypes.Updatable) == TableTypes.Updatable)
                     {
-                        UpdateTest(conn, type, crudInstance);
+                        UpdateTest(conn, type, crudInstance, log, baseLogMessage);
                     }
                     else
                     {
@@ -184,13 +188,13 @@ namespace CRUDTestApp
                     // LOAD
                     // Will be executed for all types
                     {
-                        LoadTest(conn, type, tableType);
+                        LoadTest(conn, type, tableType, log, baseLogMessage);
                     }
 
                     // DELETE
                     if ((tableType & TableTypes.Deletable) == TableTypes.Deletable)
                     {
-                        DeleteTest(conn, crudInstance);
+                        DeleteTest(conn, crudInstance, log, baseLogMessage);
                     }
                     else
                     {
@@ -204,15 +208,15 @@ namespace CRUDTestApp
             }
         }
 
-        private void DeleteTest(Oracle.ManagedDataAccess.Client.OracleConnection conn, dynamic crudInstance)
+        private void DeleteTest(Oracle.ManagedDataAccess.Client.OracleConnection conn, dynamic crudInstance, log4net.ILog log, string baseLogMessage)
         {
-            bool deleted = crudInstance.Delete(conn);
+            bool deleted = crudInstance.Delete(conn, log, baseLogMessage);
             LogResult(deleted, "    Delete");
         }
 
-        private void InsertTest(Oracle.ManagedDataAccess.Client.OracleConnection conn, Type type, dynamic crudInstance)
+        private void InsertTest(Oracle.ManagedDataAccess.Client.OracleConnection conn, Type type, dynamic crudInstance, log4net.ILog log, string baseLogMessage)
         {
-            bool inserted = crudInstance.Insert(conn);
+            bool inserted = crudInstance.Insert(conn, log, baseLogMessage);
             LogResult(inserted, $"    Insert");
             if (inserted)
             {
@@ -225,7 +229,7 @@ namespace CRUDTestApp
             }
         }
 
-        private void UpdateTest(Oracle.ManagedDataAccess.Client.OracleConnection conn, Type type, dynamic crudInstance)
+        private void UpdateTest(Oracle.ManagedDataAccess.Client.OracleConnection conn, Type type, dynamic crudInstance, log4net.ILog log, string baseLogMessage)
         {
             PropertyInfo modProp = null;
             foreach (var prop in type.GetProperties())
@@ -239,19 +243,19 @@ namespace CRUDTestApp
             if (modProp != null)
             {
                 modProp.SetValue(crudInstance, "TestValue");
-                bool updated = crudInstance.Update(conn);
+                bool updated = crudInstance.Update(conn, log, baseLogMessage);
                 LogResult(updated, "    Update");
             }
         }
 
-        private void LoadTest(Oracle.ManagedDataAccess.Client.OracleConnection conn, Type type, TableTypes tableType)
+        private void LoadTest(Oracle.ManagedDataAccess.Client.OracleConnection conn, Type type, TableTypes tableType, log4net.ILog log, string baseLogMessage)
         {
             var crudBaseGeneric = typeof(ACrudBase<>).MakeGenericType(type); // this works because ACrudBase<T> is open
             var method = crudBaseGeneric.GetMethod("LoadAll", BindingFlags.Public | BindingFlags.Static);
             if (method != null)
             {
                 DateTime dtStart = DateTime.Now;
-                var result = method.Invoke(null, new object[] { conn, "", false }); // second param is whereFilter, third parameter il cache loading
+                var result = method.Invoke(null, new object[] { conn, log, baseLogMessage, "", false }); // second param is whereFilter, third parameter il cache loading
                 var loadedList = ((IEnumerable<object>)result)?.ToList();
                 LogResult(loadedList?.Count ?? 0, "    Load");
                 LogInfo($"    Load took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
@@ -268,14 +272,14 @@ namespace CRUDTestApp
                 {
                     // Provo un accesso alla cache
                     DateTime dtStart = DateTime.Now;
-                    var result = method.Invoke(null, new object[] { conn, "", false }); // second param is whereFilter, third parameter il cache loading
+                    var result = method.Invoke(null, new object[] { conn, log, baseLogMessage, "", false }); // second param is whereFilter, third parameter il cache loading
                     var loadedList = ((IEnumerable<object>)result)?.ToList();
                     LogResult(loadedList?.Count ?? 0, "    CacheLoad");
                     LogInfo($"    CacheLoad took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
 
                     // Provo un reload della cache
                     dtStart = DateTime.Now;
-                    result = method.Invoke(null, new object[] { conn, "", true }); // second param is whereFilter, third parameter il cache loading
+                    result = method.Invoke(null, new object[] { conn, log, baseLogMessage, "", true }); // second param is whereFilter, third parameter il cache loading
                     loadedList = ((IEnumerable<object>)result)?.ToList();
                     LogResult(loadedList?.Count ?? 0, "    CacheReLoad");
                     LogInfo($"    CacheReLoad took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
@@ -286,7 +290,7 @@ namespace CRUDTestApp
                     {
                         // Reload della cache
                         DateTime dtStart = DateTime.Now;
-                        var result = method.Invoke(null, new object[] { conn, "", true });
+                        var result = method.Invoke(null, new object[] { conn, log, baseLogMessage, "", true });
                         var loadedList = ((IEnumerable<object>)result)?.ToList();
                         LogResult(loadedList?.Count ?? 0, "    Task CacheReLoad");
                         LogInfo($"    CacheReLoad took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
@@ -296,7 +300,7 @@ namespace CRUDTestApp
                     {
                         // Accesso ai dati (senza reload)
                         DateTime dtStart = DateTime.Now;
-                        var result = method.Invoke(null, new object[] { conn, "", false });
+                        var result = method.Invoke(null, new object[] { conn, log, baseLogMessage, "", false });
                         var loadedList = ((IEnumerable<object>)result)?.ToList();
                         LogResult(loadedList?.Count ?? 0, "    Task CacheAccess");
                         LogInfo($"    CacheLoad took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
@@ -308,12 +312,20 @@ namespace CRUDTestApp
             }
         }
 
-        private void Log2Colors(string firstColotText, string secondColorText, 
-            ConsoleColor firstColor = ConsoleColor.Gray, ConsoleColor secondColor = ConsoleColor.Yellow)
+
+        private void LogTime()
         {
+            Console.ForegroundColor = ConsoleColor.Gray;
+            Console.Write($"[{DateTime.Now:yyyy/MM/dd-HH:mm:ss.fff}] ");
             Console.ResetColor();
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.Write($"[{DateTime.Now:yyyyMMdd-HHmmss:fff}] ");
+        }
+
+        private void Log2Colors(string firstColotText, string secondColorText, 
+            ConsoleColor firstColor = ConsoleColor.Gray, 
+            ConsoleColor secondColor = ConsoleColor.Yellow)
+        {
+            LogTime();
+            Console.ResetColor(); 
             Console.ForegroundColor = firstColor;
             Console.Write($"[INFO]  {firstColotText} : ");
             Console.ForegroundColor = secondColor;            
@@ -323,9 +335,9 @@ namespace CRUDTestApp
 
         private void LogResult(int number, string operation)
         {
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.Write($"[{DateTime.Now:yyyy/MM/dd-HH:mm:ss.fff}] ");
+            LogTime();
             Console.ResetColor();
+            Console.ForegroundColor = ConsoleColor.White;
             if (number > 0)
             {
                 Console.Write($"[INFO]  {operation} : ");
@@ -342,9 +354,9 @@ namespace CRUDTestApp
 
         private void LogResult(bool result, string operation)
         {
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.Write($"[{DateTime.Now:yyyy/MM/dd-HH:mm:ss.fff}] ");
+            LogTime();
             Console.ResetColor();
+            Console.ForegroundColor = ConsoleColor.White;
             if (result)
             {
                 Console.Write($"[INFO]  {operation} : ");
@@ -363,15 +375,13 @@ namespace CRUDTestApp
 
         private void LogColor(string message, ConsoleColor txtColor = ConsoleColor.Gray)
         {
-            Console.ResetColor();
-            Console.ForegroundColor = ConsoleColor.White; 
-            Console.Write($"[{DateTime.Now:yyyy/MM/dd-HH:mm:ss.fff}] ");
+            LogTime();
             Console.ForegroundColor = txtColor;
             Console.WriteLine($"{message}");
             Console.ResetColor();
         }
 
-        private void LogInfo(string message = "", ConsoleColor txtColor = ConsoleColor.Gray)
+        private void LogInfo(string message = "", ConsoleColor txtColor = ConsoleColor.White)
         {
             LogColor($"[INFO]  {message}", txtColor);
         }

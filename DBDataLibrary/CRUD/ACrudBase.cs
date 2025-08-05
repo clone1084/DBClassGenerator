@@ -1,4 +1,5 @@
 ﻿using DBDataLibrary.Attributes;
+using log4net;
 using System.Data;
 using System.Data.Common;
 using System.Reflection;
@@ -23,7 +24,9 @@ namespace DBDataLibrary.CRUD
         protected void AddModifiedProperty(string propertyName)
         {
             if (string.IsNullOrWhiteSpace(propertyName))
+            {
                 throw new ArgumentException("Property name cannot be null or empty.", nameof(propertyName));
+            }
 
             if (!_modifiedProperties.Contains(propertyName))
                 _modifiedProperties.Add(propertyName);
@@ -101,16 +104,21 @@ namespace DBDataLibrary.CRUD
             return attr != null ? attr.Name : prop.Name;
         }
 
-        public bool Insert(IDbConnection connection)
+        public bool Insert(IDbConnection connection, ILog log, string baseLogMessage)
         {
             DateTime insertStart = DateTime.Now;
 
             if (!HasTableTypeFlag(TableTypes.Insertable))
+            {
+                log.Error($"{baseLogMessage} - Insert operation is not allowed for table type '{typeof(TClass).Name}'.");
                 throw new InvalidOperationException($"Insert is not allowed for table type '{typeof(TClass).Name}'.");
+            }
 
             if (HasTableTypeFlag(TableTypes.ReadOnly))
+            {
+                log.Error($"{baseLogMessage} - Insert operation is not allowed! Table '{typeof(TClass).Name}' is marked as ReadOnly.");
                 throw new InvalidOperationException($"Insert is not allowed! Table '{typeof(TClass).Name}' is marked as ReadOnly.");
-
+            }
 
             var keyProps = GetKeyProperties(); 
             var allProps = GetAllColumnsProperties();
@@ -234,16 +242,21 @@ namespace DBDataLibrary.CRUD
             return attr != null && attr.TableType.HasFlag(required);
         }
 
-        public bool Update(IDbConnection connection)
+        public bool Update(IDbConnection connection, ILog log, string baseLogMessage)
         {
             DateTime updateStart = DateTime.Now;
 
             if (!HasTableTypeFlag(TableTypes.Updatable))
+            {
+                log.Error($"{baseLogMessage} - Update operation is not allowed for table type '{typeof(TClass).Name}'.");
                 throw new InvalidOperationException($"Update is not allowed for table type '{typeof(TClass).Name}'.");
+            }
 
             if (HasTableTypeFlag(TableTypes.ReadOnly))
+            {
+                log.Error($"{baseLogMessage} - Update operation is not allowed! Table '{typeof(TClass).Name}' is marked as ReadOnly.");
                 throw new InvalidOperationException($"Update is not allowed! Table '{typeof(TClass).Name}' is marked as ReadOnly.");
-
+            }
 
             var modified = _modifiedProperties.ToList();
             if (!modified.Any())
@@ -260,7 +273,10 @@ namespace DBDataLibrary.CRUD
 
             var keyProps = GetKeyProperties();
             if (!keyProps.Any())
+            {
+                log.Error($"{baseLogMessage} - No [Key] properties found for update operation in table '{typeof(TClass).Name}'.");
                 throw new InvalidOperationException("No [Key] properties found for update.");
+            }
 
             var dtUpdateProp = type.GetProperties().FirstOrDefault(p => GetColumnName(p).Equals(DT_UPDATE_COLUMN, StringComparison.OrdinalIgnoreCase));
 
@@ -391,18 +407,26 @@ namespace DBDataLibrary.CRUD
         }
 
 
-        public bool Delete(IDbConnection connection)
+        public bool Delete(IDbConnection connection, ILog log, string baseLogMessage)
         {
             if (!HasTableTypeFlag(TableTypes.Deletable))
+            {
+                log.Error($"{baseLogMessage} - Delete operation is not allowed for table type '{typeof(TClass).Name}'.");
                 throw new InvalidOperationException($"Delete is not allowed for table type '{typeof(TClass).Name}'.");
+            }
 
             if (HasTableTypeFlag(TableTypes.ReadOnly))
+            {
+                log.Error($"{baseLogMessage} - Delete operation is not allowed! Table '{typeof(TClass).Name}' is marked as ReadOnly.");
                 throw new InvalidOperationException($"Delete is not allowed! Table '{typeof(TClass).Name}' is marked as ReadOnly.");
-
+            }
 
             var keyProps = GetKeyProperties();
             if (!keyProps.Any())
+            {
+                log.Error($"{baseLogMessage} - No [Key] properties found for delete operation in table '{typeof(TClass).Name}'.");
                 throw new InvalidOperationException("No [Key] properties found for delete.");
+            }
 
             var whereClause = string.Join(" AND ", keyProps.Select(p => $"{GetColumnName(p)} = :{GetColumnName(p)}"));
             var sql = $"DELETE FROM {TableName} WHERE {whereClause}";
@@ -448,9 +472,9 @@ namespace DBDataLibrary.CRUD
         /// name, and its associated value is used for filtering.</param>
         /// <returns>An instance of the specified class that matches the provided key-value criteria,  or <see langword="null"/>
         /// if no matching record is found.</returns>
-        public static TClass Load(IDbConnection connection, params KeyValuePair<string, object>[] keyValues)
+        public static TClass Load(IDbConnection connection, ILog log, string baseLogMessage, params KeyValuePair<string, object>[] keyValues)
         {
-            return Load(connection, false, keyValues);
+            return Load(connection, log, baseLogMessage, false, keyValues);
         }
 
         /// <summary>
@@ -463,7 +487,7 @@ namespace DBDataLibrary.CRUD
         /// <returns>An instance of the specified class that matches the provided key-value criteria,  or <see langword="null"/>
         /// if no matching record is found.</returns>
         /// <exception cref="ArgumentException"></exception>
-        public static TClass Load(IDbConnection connection, bool ignoreCache, params KeyValuePair<string, object>[] keyValues)
+        public static TClass Load(IDbConnection connection, ILog log, string baseLogMessage, bool ignoreCache, params KeyValuePair<string, object>[] keyValues)
         {
             if (HasTableTypeFlag(TableTypes.Cached) && !ignoreCache)
             {
@@ -484,7 +508,10 @@ namespace DBDataLibrary.CRUD
 
             var keyProps = GetKeyProperties();
             if (keyProps.Count != keyValues.Length)
+            {
+                log.Error($"{baseLogMessage} - Number of key values ({keyValues.Length}) does not match number of [Key] properties ({keyProps.Count}).");
                 throw new ArgumentException("Number of key values does not match number of [Key] properties.");
+            }
 
             var whereClause = string.Join(" AND ", keyProps.Select(p => $"{GetColumnName(p)} = :{GetColumnName(p)}"));
             var sql = $"SELECT * FROM {GetTableName()} WHERE {whereClause}";
@@ -498,7 +525,10 @@ namespace DBDataLibrary.CRUD
             {
                 var colName = GetColumnName(keyProp);
                 if (!kvpDict.Keys.Contains(colName, StringComparer.OrdinalIgnoreCase))
+                {
+                    log.Error($"{baseLogMessage} - Key value for '{colName}' is missing in the provided key values.");
                     throw new ArgumentException($"Key value for '{colName}' is missing in the provided key values.");
+                }
 
                 var param = cmd.CreateParameter();
                 param.ParameterName = ":" + colName;
@@ -568,7 +598,7 @@ namespace DBDataLibrary.CRUD
         /// <param name="whereFilter">In case of cached table, this filter will be ignored and you need to perform a <see cref="Where()"/></param> on the resuls of the method.
         /// <param name="reloadCache">In case of cached table, this will flush the cached data e load fresh data from DB</param>
         /// <returns></returns>
-        public static IEnumerable<TClass> LoadAll(IDbConnection connection, string whereFilter = "", bool reloadCache = false)
+        public static IEnumerable<TClass> LoadAll(IDbConnection connection, ILog log, string baseLogMessage, string whereFilter = "", bool reloadCache = false)
         {
             if (HasTableTypeFlag(TableTypes.Cached))
             {
@@ -636,6 +666,7 @@ namespace DBDataLibrary.CRUD
 
             return resultList;
         }
+
         public bool Equals(TClass? other)
         {
             if (other is null)
