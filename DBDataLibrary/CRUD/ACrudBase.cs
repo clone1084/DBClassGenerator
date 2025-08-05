@@ -5,16 +5,16 @@ using System.Reflection;
 
 namespace DBDataLibrary.CRUD
 {
-    public abstract class ACrudBase<TClass> : ICrudClass<TClass> 
+    public abstract class ACrudBase<TClass> : ICrudClass<TClass> , IEquatable<TClass>
         where TClass : ACrudBase<TClass>, new()
     {
-        protected const string DT_INSERT_COLUMN = "DT_INSERT";
         protected const string OID_COLUMN = "OID";
+        protected const string DT_INSERT_COLUMN = "DT_INSERT";
         protected const string DT_UPDATE_COLUMN = "DT_UPDATE";
         
         protected HashSet<string> _modifiedProperties = new();
 
-        protected static IList<TClass> cachedEntities = new List<TClass>();
+        protected static IList<TClass> _cachedEntities = new List<TClass>();
 
         protected static readonly ReaderWriterLockSlim _cacheLock = new();
 
@@ -105,6 +105,9 @@ namespace DBDataLibrary.CRUD
         {
             if (!HasTableTypeFlag(TableTypes.Insertable))
                 throw new InvalidOperationException($"Insert is not allowed for table type '{typeof(TClass).Name}'.");
+
+            if (HasTableTypeFlag(TableTypes.ReadOnly))
+                throw new InvalidOperationException($"Insert is not allowed! Table '{typeof(TClass).Name}' is marked as ReadOnly.");
 
 
             var keyProps = GetKeyProperties(); 
@@ -215,6 +218,10 @@ namespace DBDataLibrary.CRUD
         {
             if (!HasTableTypeFlag(TableTypes.Updatable))
                 throw new InvalidOperationException($"Update is not allowed for table type '{typeof(TClass).Name}'.");
+
+            if (HasTableTypeFlag(TableTypes.ReadOnly))
+                throw new InvalidOperationException($"Update is not allowed! Table '{typeof(TClass).Name}' is marked as ReadOnly.");
+
 
             var modified = _modifiedProperties.ToList();
             if (!modified.Any())
@@ -327,6 +334,9 @@ namespace DBDataLibrary.CRUD
             if (!HasTableTypeFlag(TableTypes.Deletable))
                 throw new InvalidOperationException($"Delete is not allowed for table type '{typeof(TClass).Name}'.");
 
+            if (HasTableTypeFlag(TableTypes.ReadOnly))
+                throw new InvalidOperationException($"Delete is not allowed! Table '{typeof(TClass).Name}' is marked as ReadOnly.");
+
 
             var keyProps = GetKeyProperties();
             if (!keyProps.Any())
@@ -349,15 +359,38 @@ namespace DBDataLibrary.CRUD
             return cmd.ExecuteNonQuery() > 0;
         }
 
-
+        /// <summary>
+        /// Loads an instance of the specified class from the database using the provided key-value pairs.
+        /// It will use cached data if available, or query the database directly if not.
+        /// </summary>
+        /// <param name="connection">The database connection to use for the operation. Must be open and valid.</param>
+        /// <param name="keyValues">The key-value pairs representing the criteria for loading the instance.  Each key corresponds to a column
+        /// name, and its associated value is used for filtering.</param>
+        /// <returns>An instance of the specified class that matches the provided key-value criteria,  or <see langword="null"/>
+        /// if no matching record is found.</returns>
         public static TClass Load(IDbConnection connection, params KeyValuePair<string, object>[] keyValues)
         {
-            if (HasTableTypeFlag(TableTypes.Cached))
+            return Load(connection, false, keyValues);
+        }
+
+        /// <summary>
+        /// Loads an instance of the specified class from the database using the provided key-value pairs.
+        /// </summary>
+        /// <param name="connection">The database connection to use for the operation. Must be open and valid.</param>
+        /// <param name="ignoreCache">True if you want to read always from DB. False if you want to read from cache (if available)</param>
+        /// <param name="keyValues">The key-value pairs representing the criteria for loading the instance.  Each key corresponds to a column
+        /// name, and its associated value is used for filtering.</param>
+        /// <returns>An instance of the specified class that matches the provided key-value criteria,  or <see langword="null"/>
+        /// if no matching record is found.</returns>
+        /// <exception cref="ArgumentException"></exception>
+        public static TClass Load(IDbConnection connection, bool ignoreCache, params KeyValuePair<string, object>[] keyValues)
+        {
+            if (HasTableTypeFlag(TableTypes.Cached) && !ignoreCache)
             {
                 _cacheLock.EnterReadLock();
                 try
                 {
-                    var cachedItem = cachedEntities.ToList().FirstOrDefault(e => e.GetKeyValues().SequenceEqual(keyValues));
+                    var cachedItem = _cachedEntities.ToList().FirstOrDefault(e => e.GetKeyValues().SequenceEqual(keyValues));
                     if (cachedItem != null)
                     {
                         return cachedItem;
@@ -404,9 +437,9 @@ namespace DBDataLibrary.CRUD
                 _cacheLock.EnterWriteLock();
                 try
                 {
-                    if (!cachedEntities.Contains(loadedInstance))
+                    if (!_cachedEntities.Contains(loadedInstance))
                     {
-                        cachedEntities.Add(loadedInstance);
+                        _cachedEntities.Add(loadedInstance);
                     }
                 }
                 finally
@@ -467,7 +500,7 @@ namespace DBDataLibrary.CRUD
                         _cacheLock.EnterWriteLock();
                         try
                         {
-                            cachedEntities.Clear();
+                            _cachedEntities.Clear();
                         }
                         finally
                         {
@@ -475,9 +508,9 @@ namespace DBDataLibrary.CRUD
                         }
                     }
 
-                    if (cachedEntities.Any())
+                    if (_cachedEntities.Any())
                     {
-                        return cachedEntities.ToList();
+                        return _cachedEntities.ToList();
                     }
                 }
                 finally
@@ -513,7 +546,7 @@ namespace DBDataLibrary.CRUD
                 _cacheLock.EnterWriteLock();
                 try
                 {
-                    cachedEntities = resultList;
+                    _cachedEntities = resultList;
                 }
                 finally
                 {
@@ -523,6 +556,49 @@ namespace DBDataLibrary.CRUD
 
             return resultList;
         }
+        public bool Equals(TClass? other)
+        {
+            if (other is null)
+                return false;
 
+            if (ReferenceEquals(this, other))
+                return true;
+
+            var props = GetAllColumnsProperties();
+
+            foreach (var prop in props)
+            {
+                var thisValue = prop.GetValue(this);
+                var otherValue = prop.GetValue(other);
+
+                if (thisValue == null && otherValue == null)
+                    continue;
+
+                if (thisValue == null || otherValue == null || !thisValue.Equals(otherValue))
+                    return false;
+            }
+
+            return true;
+        }
+
+        public override bool Equals(object? obj)
+        {
+            return obj is TClass other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            var props = GetAllColumnsProperties();
+            unchecked
+            {
+                int hash = 17;
+                foreach (var prop in props)
+                {
+                    var value = prop.GetValue(this);
+                    hash = hash * 23 + (value?.GetHashCode() ?? 0);
+                }
+                return hash;
+            }
+        }
     }
 }
