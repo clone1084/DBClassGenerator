@@ -103,6 +103,8 @@ namespace DBDataLibrary.CRUD
 
         public bool Insert(IDbConnection connection)
         {
+            DateTime insertStart = DateTime.Now;
+
             if (!HasTableTypeFlag(TableTypes.Insertable))
                 throw new InvalidOperationException($"Insert is not allowed for table type '{typeof(TClass).Name}'.");
 
@@ -175,7 +177,7 @@ namespace DBDataLibrary.CRUD
                 outputParams[outProp] = param;
             }
 
-            cmd.ExecuteNonQuery();
+            bool inserted = cmd.ExecuteNonQuery() == 1;
 
             // Recupero dei valori autogenerati
             foreach (var kv in outputParams)
@@ -187,8 +189,26 @@ namespace DBDataLibrary.CRUD
                     prop.SetValue(this, Convert.ChangeType(param.Value, Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType));
             }
 
+            if (HasTableTypeFlag(TableTypes.Cached) && inserted)
+            {
+                DateTime cacheStart = DateTime.Now;
+                // Aggiorna la cache con il nuovo elemento inserito
+                _cacheLock.EnterWriteLock();
+                try
+                {
+                    _cachedEntities.Add((TClass)this);
+                }
+                finally
+                {
+                    _cacheLock.ExitWriteLock();
+                }
+                //Console.WriteLine($"Cache insert in {(DateTime.Now - cacheStart).TotalMilliseconds} ms for {typeof(TClass).Name}");
+            }
+
             _modifiedProperties.Clear();
-            return true;
+
+            //Console.WriteLine($"Insert done in {(DateTime.Now - insertStart).TotalMilliseconds} ms for {typeof(TClass).Name}");
+            return inserted;
         }
 
         private DbType MapTypeToDbType(Type type)
@@ -216,6 +236,8 @@ namespace DBDataLibrary.CRUD
 
         public bool Update(IDbConnection connection)
         {
+            DateTime updateStart = DateTime.Now;
+
             if (!HasTableTypeFlag(TableTypes.Updatable))
                 throw new InvalidOperationException($"Update is not allowed for table type '{typeof(TClass).Name}'.");
 
@@ -307,7 +329,7 @@ namespace DBDataLibrary.CRUD
                 outputParams[dtUpdateProp] = param;
             }
 
-            var affected = cmd.ExecuteNonQuery();
+            bool updated = cmd.ExecuteNonQuery() > 0;
 
             // Set output values
             foreach (var kv in outputParams)
@@ -322,10 +344,50 @@ namespace DBDataLibrary.CRUD
                 }
             }
 
-            if (affected > 0)
+            if (updated)
                 _modifiedProperties.Clear();
 
-            return affected > 0;
+
+            if (HasTableTypeFlag(TableTypes.Cached) && updated)
+            {
+                DateTime cacheStart = DateTime.Now;
+                // Aggiorna la cache solo se l'elemento è stato modificato
+                _cacheLock.EnterWriteLock();
+                try
+                {
+                    // Cerca un elemento con le stesse chiavi
+                    var myKeys = GetKeyValues();
+                    var existing = _cachedEntities.FirstOrDefault(e =>
+                        e.GetKeyValues().Count == myKeys.Count &&
+                        e.GetKeyValues().All(kv => myKeys.TryGetValue(kv.Key, out var v) && Equals(v, kv.Value))
+                    );
+
+                    if (existing != null)
+                    {
+                        // Se i dati sono diversi, sostituisci l'elemento
+                        if (!existing.Equals((TClass)this))
+                        {
+                            int idx = _cachedEntities.IndexOf(existing);
+                            if (idx >= 0)
+                                _cachedEntities[idx] = (TClass)this;
+                        }
+                    }
+                    else
+                    {
+                        // Se non ho un elemento da sostire, aggiungo il nuovo elemento
+                        // Non dovrebbe mai succedere, ma è una sicurezza in più
+                        _cachedEntities.Add((TClass)this);
+                    }
+                }
+                finally
+                {
+                    _cacheLock.ExitWriteLock();
+                }
+                //Console.WriteLine($"Cache updated in {(DateTime.Now - cacheStart).TotalMilliseconds} ms for {typeof(TClass).Name}");
+            }
+
+            //Console.WriteLine($"Update done in {(DateTime.Now - updateStart).TotalMilliseconds} ms for {typeof(TClass).Name}");
+            return updated;
         }
 
 
@@ -356,7 +418,25 @@ namespace DBDataLibrary.CRUD
                 cmd.Parameters.Add(param);
             }
 
-            return cmd.ExecuteNonQuery() > 0;
+            bool result = cmd.ExecuteNonQuery() > 0;
+
+            if (HasTableTypeFlag(TableTypes.Cached) && result)
+            {
+                if (_cachedEntities.Contains((TClass)this))
+                {
+                    _cacheLock.EnterWriteLock();
+                    try
+                    {
+                        _cachedEntities.Remove((TClass)this);
+                    }
+                    finally
+                    {
+                        _cacheLock.ExitWriteLock();
+                    }
+                }
+            }
+
+            return result;
         }
 
         /// <summary>

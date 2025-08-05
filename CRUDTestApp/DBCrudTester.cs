@@ -48,9 +48,9 @@ namespace CRUDTestApp
                 conn.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
                 LogInfo("Transaction started. All operations will be rolled back at the end.");
 
-                //ManualTest(conn);
+                ManualTest(conn);
 
-                AutomaticTestOfAllClasses(conn);
+                //AutomaticTestOfAllClasses(conn);
 
                 LogInfo();
                 LogInfo("All tests completed.");
@@ -79,20 +79,29 @@ namespace CRUDTestApp
                 Result = 0,                
             };
 
+            //DateTime start = DateTime.Now;
             LogResult(mov.Insert(conn), "    ManualInsert MfcConvMovements");
             LogInfo($"OID: {mov.Oid}, DT_INSERT: {mov.DtInsert}");
+            //LogWarning($"Insert took {(DateTime.Now - start).TotalMilliseconds:N2} ms");
 
             mov.ActualType = 6;
             mov.ActualPar1 = 2002;
+            
+            //start = DateTime.Now;
             LogResult(mov.Update(conn), "    ManualUpdate ManToCom");
             LogInfo($"DtUpdated: {mov.DtUpdate}");
+            //LogWarning($"Update took {(DateTime.Now - start).TotalMilliseconds:N2} ms");
 
+            //start = DateTime.Now;
             MfcConvMovements mov2 = MfcConvMovements.Load(conn, new KeyValuePair<string, object>("OID", mov.Oid));
+            //LogWarning($"ManualLoad took {(DateTime.Now - start).TotalMilliseconds:N2} ms");
             LogResult(mov2 != null, "    ManualLoad ManToCom");
             LogResult(mov2 != null && mov2.Oid == mov.Oid, "ManualLoad have the same OID of ManualInsert");
             LogInfo($"DB Loaded actual position: {mov2.ActualPar1} DtUpdate: {mov2.DtUpdate}");
 
+            //start = DateTime.Now;
             var allMtc = MfcConvMovements.LoadAll(conn);
+            //LogWarning($"ManualLoadAll took {(DateTime.Now - start).TotalMilliseconds:N2} ms");
             LogResult(allMtc?.Count() != 0, "    ManualLoadAll MfcConvMovements");
             LogInfo($"Loaded {allMtc?.Count()} MfcConvManToCom records from DB");
 
@@ -303,6 +312,8 @@ namespace CRUDTestApp
             ConsoleColor firstColor = ConsoleColor.Gray, ConsoleColor secondColor = ConsoleColor.Yellow)
         {
             Console.ResetColor();
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.Write($"[{DateTime.Now:yyyyMMdd-HHmmss:fff}] ");
             Console.ForegroundColor = firstColor;
             Console.Write($"[INFO]  {firstColotText} : ");
             Console.ForegroundColor = secondColor;            
@@ -312,6 +323,9 @@ namespace CRUDTestApp
 
         private void LogResult(int number, string operation)
         {
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.Write($"[{DateTime.Now:yyyy/MM/dd-HH:mm:ss.fff}] ");
+            Console.ResetColor();
             if (number > 0)
             {
                 Console.Write($"[INFO]  {operation} : ");
@@ -328,6 +342,9 @@ namespace CRUDTestApp
 
         private void LogResult(bool result, string operation)
         {
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.Write($"[{DateTime.Now:yyyy/MM/dd-HH:mm:ss.fff}] ");
+            Console.ResetColor();
             if (result)
             {
                 Console.Write($"[INFO]  {operation} : ");
@@ -347,6 +364,8 @@ namespace CRUDTestApp
         private void LogColor(string message, ConsoleColor txtColor = ConsoleColor.Gray)
         {
             Console.ResetColor();
+            Console.ForegroundColor = ConsoleColor.White; 
+            Console.Write($"[{DateTime.Now:yyyy/MM/dd-HH:mm:ss.fff}] ");
             Console.ForegroundColor = txtColor;
             Console.WriteLine($"{message}");
             Console.ResetColor();
