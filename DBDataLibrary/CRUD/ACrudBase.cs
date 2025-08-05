@@ -1,5 +1,6 @@
 ﻿using DBDataLibrary.Attributes;
 using System.Data;
+using System.Data.Common;
 using System.Reflection;
 
 namespace DBDataLibrary.CRUD
@@ -111,13 +112,13 @@ namespace DBDataLibrary.CRUD
 
             // OID_COLUMN is not insertable, because its auto populated, so we exclude it from the insertable properties
             // DT_INSERT is inserted as SYSDATE by default, so we exclude it from the insertable properties
-            var insertableProps = allProps
+            var insertableProps = allProps.Except(keyProps)
                 .Where(p => !GetColumnName(p).Equals(OID_COLUMN, StringComparison.OrdinalIgnoreCase)
                          && !GetColumnName(p).Equals(DT_INSERT_COLUMN, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
             var dtInsertProp = allProps.FirstOrDefault(p => GetColumnName(p).Equals(DT_INSERT_COLUMN, StringComparison.OrdinalIgnoreCase));
-           
+
             var columnListItems = insertableProps.Select(GetColumnName).ToList();
             var paramListItems = insertableProps.Select(p => ":" + GetColumnName(p)).ToList();
 
@@ -130,8 +131,13 @@ namespace DBDataLibrary.CRUD
             var columnList = string.Join(", ", columnListItems);
             var paramList = string.Join(", ", paramListItems);
 
-            var returningClause = keyProps.Any()
-                ? $" RETURNING {string.Join(", ", keyProps.Select(GetColumnName))} INTO {string.Join(", ", keyProps.Select(p => ":" + GetColumnName(p) + "_OUT"))}"
+            var outProps = keyProps;
+            if (dtInsertProp != null)
+            {
+                outProps.Add(dtInsertProp);
+            }
+            var returningClause = outProps.Any()
+                ? $" RETURNING {string.Join(", ", outProps.Select(GetColumnName))} INTO {string.Join(", ", outProps.Select(p => ":" + GetColumnName(p) + "_OUT"))}"
                 : string.Empty;
 
             var sql = $@"
@@ -153,17 +159,17 @@ namespace DBDataLibrary.CRUD
             // Parametri di output per le chiavi
             var outputParams = new Dictionary<PropertyInfo, IDataParameter>();
 
-            foreach (var keyProp in keyProps)
+            foreach (var outProp in outProps)
             {
                 var param = cmd.CreateParameter();
-                param.ParameterName = ":" + GetColumnName(keyProp) + "_OUT";
+                param.ParameterName = ":" + GetColumnName(outProp) + "_OUT";
                 param.Direction = ParameterDirection.Output;
 
                 // Mapping tipo C# → tipo Db
-                param.DbType = MapTypeToDbType(keyProp.PropertyType);
+                param.DbType = MapTypeToDbType(outProp.PropertyType);
                 cmd.Parameters.Add(param);
 
-                outputParams[keyProp] = param;
+                outputParams[outProp] = param;
             }
 
             cmd.ExecuteNonQuery();
@@ -210,11 +216,9 @@ namespace DBDataLibrary.CRUD
             if (!HasTableTypeFlag(TableTypes.Updatable))
                 throw new InvalidOperationException($"Update is not allowed for table type '{typeof(TClass).Name}'.");
 
-
             var modified = _modifiedProperties.ToList();
-
             if (!modified.Any())
-                return false;
+                return true;
 
             var type = typeof(TClass);
             var propsModified = modified
@@ -223,36 +227,52 @@ namespace DBDataLibrary.CRUD
                 .ToList();
 
             if (!propsModified.Any())
-                return false;
+                return true;
 
             var keyProps = GetKeyProperties();
             if (!keyProps.Any())
                 throw new InvalidOperationException("No [Key] properties found for update.");
 
-            //var setClause = string.Join(", ", propsModified.Select(p => $"{GetColumnName(p)} = :{GetColumnName(p)}"));
+            var dtUpdateProp = type.GetProperties().FirstOrDefault(p => GetColumnName(p).Equals(DT_UPDATE_COLUMN, StringComparison.OrdinalIgnoreCase));
+
             var setAssignments = new List<string>();
+            var outputParams = new Dictionary<PropertyInfo, IDataParameter>();
+            
             foreach (var prop in propsModified)
             {
                 var column = GetColumnName(prop);
+
                 if (column.Equals(DT_UPDATE_COLUMN, StringComparison.OrdinalIgnoreCase))
                 {
-                    setAssignments.Add($"{column} = SYSDATE");
+                    continue; // Skip DT_UPDATE column in set assignments
                 }
                 else
                 {
                     setAssignments.Add($"{column} = :{column}");
                 }
             }
-            var setClause = string.Join(", ", setAssignments);
 
+            if (dtUpdateProp != null && setAssignments.Any())
+            {
+                setAssignments.Add($"{DT_UPDATE_COLUMN} = SYSDATE");
+            }
+
+            var setClause = string.Join(", ", setAssignments);
             var whereClause = string.Join(" AND ", keyProps.Select(p => $"{GetColumnName(p)} = :{GetColumnName(p)}"));
 
-            var sql = $"UPDATE {TableName} SET {setClause} WHERE {whereClause}";
+            // Prepare RETURNING clause if DT_UPDATE is in the update
+            string returningClause = string.Empty;
+            if (dtUpdateProp != null)
+            {
+                returningClause = $" RETURNING {DT_UPDATE_COLUMN} INTO :{DT_UPDATE_COLUMN}_OUT";
+            }
+
+            var sql = $"UPDATE {TableName} SET {setClause} WHERE {whereClause}{returningClause}";
 
             using var cmd = connection.CreateCommand();
             cmd.CommandText = sql;
 
-            //foreach (var prop in propsModified)
+            // Input parameters
             foreach (var prop in propsModified.Where(p => !GetColumnName(p).Equals(DT_UPDATE_COLUMN, StringComparison.OrdinalIgnoreCase)))
             {
                 var param = cmd.CreateParameter();
@@ -269,12 +289,38 @@ namespace DBDataLibrary.CRUD
                 cmd.Parameters.Add(param);
             }
 
+            // Output parameter for DT_UPDATE
+            if (dtUpdateProp != null)
+            {
+                var param = cmd.CreateParameter();
+                param.ParameterName = ":" + DT_UPDATE_COLUMN + "_OUT";
+                param.Direction = ParameterDirection.Output;
+                param.DbType = DbType.DateTime;
+                cmd.Parameters.Add(param);
+                outputParams[dtUpdateProp] = param;
+            }
+
             var affected = cmd.ExecuteNonQuery();
+
+            // Set output values
+            foreach (var kv in outputParams)
+            {
+                var prop = kv.Key;
+                var param = kv.Value;
+
+                if (param.Value != DBNull.Value)
+                {
+                    var targetType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
+                    prop.SetValue(this, Convert.ChangeType(param.Value, targetType));
+                }
+            }
+
             if (affected > 0)
                 _modifiedProperties.Clear();
 
             return affected > 0;
         }
+
 
         public bool Delete(IDbConnection connection)
         {

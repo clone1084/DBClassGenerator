@@ -3,6 +3,7 @@ using DBDataLibrary.CRUD;
 using DBDataLibrary.Tables;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -47,99 +48,10 @@ namespace CRUDTestApp
                 conn.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
                 LogInfo("Transaction started. All operations will be rolled back at the end.");
 
-                var baseType = typeof(DBDataLibrary.CRUD.ACrudBase<>);
+                //ManualTest(conn);
 
-                // Cerca tutte le classi concrete che ereditano da ACrudBase<TData>
-                List<Type> typesToTest = AppDomain.CurrentDomain.GetAssemblies()
-                    .SelectMany(a => a.GetTypes())
-                    .Where(t =>
-                        !t.IsAbstract &&
-                        t.BaseType != null &&
-                        t.BaseType.IsGenericType &&
-                        t.BaseType.GetGenericTypeDefinition() == baseType)
-                    .ToList();
+                AutomaticTestOfAllClasses(conn);
 
-                LogInfo($"Found {typesToTest.Count} tables to test");
-                
-                Console.Write("Proceed? (Y/N): ");
-                var proceed = Console.ReadLine()?.Trim().ToUpper();
-                if (proceed != "Y")
-                {
-                    Console.WriteLine("Operation cancelled.");
-                    return;
-                }
-
-                int count = 1;
-
-                foreach (var type in typesToTest)
-                {
-
-                    try
-                    {
-                        dynamic crudInstance = Activator.CreateInstance(type)!;
-
-                        LogInfo($"[{count++}/{typesToTest.Count}] {type.Name} [{crudInstance.TableName}]:", ConsoleColor.White);
-
-                        // GET THE CUSTOM ATTRIBUTE
-                        // Assuming the TableTypes attribute is defined on the class itself
-                        var tableTypeAttribute = type.GetCustomAttributes(typeof(TableTypeAttribute), false)
-                                                    .FirstOrDefault() as TableTypeAttribute;
-
-                        if (tableTypeAttribute == null)
-                        {
-                            LogWarning($"    Skipping {type.Name}: No TableTypes attribute found.");
-                            continue;
-                        }
-
-                        TableTypes tableType = tableTypeAttribute.TableType;
-
-                        Log2Colors($"    TableType", $"{tableType}", secondColor: ConsoleColor.White);
-
-                        // CONDITIONAL EXECUTION BASED ON ATTRIBUTE FLAGS
-
-                        // INSERT
-                        if ((tableType & TableTypes.Insertable) == TableTypes.Insertable)
-                        {
-                            InsertTest(conn, type, crudInstance);
-                        }
-                        else
-                        {
-                            Log2Colors($"    Insert", "SKIPPED");
-                        }
-
-                        // UPDATE modifica la prima proprietà modificabile
-
-                        if ((tableType & TableTypes.Updatable) == TableTypes.Updatable)
-                        {
-                            UpdateTest(conn, type, crudInstance);
-                        }
-                        else
-                        {
-                            Log2Colors($"    Update", "SKIPPED");
-                        }
-
-                        // LOAD
-                        // Will be executed for all types
-                        {
-                            LoadTest(conn, type, tableType);
-                        }
-
-                        // DELETE
-                        if ((tableType & TableTypes.Deletable) == TableTypes.Deletable)
-                        {
-                            DeleteTest(conn, crudInstance);
-                        }
-                        else
-                        {
-                            Log2Colors($"    Delete", "SKIPPED");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        LogError($"    Error testing {type.Name}: {ex.Message}");
-                    }
-                }
-                
                 LogInfo();
                 LogInfo("All tests completed.");
             }
@@ -148,6 +60,138 @@ namespace CRUDTestApp
                 conn.Rollback();
                 LogInfo("DB rolled back");
                 LogInfo();
+            }
+        }
+
+        private void ManualTest(Oracle.ManagedDataAccess.Client.OracleConnection conn)
+        {
+            MfcConvMovements mov = new MfcConvMovements()
+            {
+                StartType = 2,
+                StartPar1 = 1001,
+                DestType = 6,
+                DestPar1 = 2002,
+                ActualType = 2,
+                ActualPar1 = 1001,
+                OidUdm = 100,
+                Constraint = "NORM",
+                Priority = 1,
+                Result = 0,                
+            };
+
+            LogResult(mov.Insert(conn), "    ManualInsert MfcConvMovements");
+            LogInfo($"OID: {mov.Oid}, DT_INSERT: {mov.DtInsert}");
+
+            mov.ActualType = 6;
+            mov.ActualPar1 = 2002;
+            LogResult(mov.Update(conn), "    ManualUpdate ManToCom");
+            LogInfo($"DtUpdated: {mov.DtUpdate}");
+
+            MfcConvMovements mov2 = MfcConvMovements.Load(conn, new KeyValuePair<string, object>("OID", mov.Oid));
+            LogResult(mov2 != null, "    ManualLoad ManToCom");
+            LogResult(mov2 != null && mov2.Oid == mov.Oid, "ManualLoad have the same OID of ManualInsert");
+            LogInfo($"DB Loaded actual position: {mov2.ActualPar1} DtUpdate: {mov2.DtUpdate}");
+
+            var allMtc = MfcConvMovements.LoadAll(conn);
+            LogResult(allMtc?.Count() != 0, "    ManualLoadAll MfcConvMovements");
+            LogInfo($"Loaded {allMtc?.Count()} MfcConvManToCom records from DB");
+
+            LogResult(mov.Delete(conn), "    ManualDelete ManToCom");
+        }
+
+        private void AutomaticTestOfAllClasses(Oracle.ManagedDataAccess.Client.OracleConnection conn)
+        {
+            var baseType = typeof(DBDataLibrary.CRUD.ACrudBase<>);
+
+            // Cerca tutte le classi concrete che ereditano da ACrudBase<TData>
+            List<Type> typesToTest = AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(a => a.GetTypes())
+                .Where(t =>
+                    !t.IsAbstract &&
+                    t.BaseType != null &&
+                    t.BaseType.IsGenericType &&
+                    t.BaseType.GetGenericTypeDefinition() == baseType)
+                .ToList();
+
+            LogInfo($"Found {typesToTest.Count} tables to test");
+
+            Console.Write("Proceed? (Y/N): ");
+            var proceed = Console.ReadLine()?.Trim().ToUpper();
+            if (proceed != "Y")
+            {
+                Console.WriteLine("Operation cancelled.");
+                return;
+            }
+
+            int count = 1;
+
+            foreach (var type in typesToTest)
+            {
+
+                try
+                {
+                    dynamic crudInstance = Activator.CreateInstance(type)!;
+
+                    LogInfo($"[{count++}/{typesToTest.Count}] {type.Name} [{crudInstance.TableName}]:", ConsoleColor.White);
+
+                    // GET THE CUSTOM ATTRIBUTE
+                    // Assuming the TableTypes attribute is defined on the class itself
+                    var tableTypeAttribute = type.GetCustomAttributes(typeof(TableTypeAttribute), false)
+                                                .FirstOrDefault() as TableTypeAttribute;
+
+                    if (tableTypeAttribute == null)
+                    {
+                        LogWarning($"    Skipping {type.Name}: No TableTypes attribute found.");
+                        continue;
+                    }
+
+                    TableTypes tableType = tableTypeAttribute.TableType;
+
+                    Log2Colors($"    TableType", $"{tableType}", secondColor: ConsoleColor.White);
+
+                    // CONDITIONAL EXECUTION BASED ON ATTRIBUTE FLAGS
+
+                    // INSERT
+                    if ((tableType & TableTypes.Insertable) == TableTypes.Insertable)
+                    {
+                        InsertTest(conn, type, crudInstance);
+                    }
+                    else
+                    {
+                        Log2Colors($"    Insert", "SKIPPED");
+                    }
+
+                    // UPDATE modifica la prima proprietà modificabile
+
+                    if ((tableType & TableTypes.Updatable) == TableTypes.Updatable)
+                    {
+                        UpdateTest(conn, type, crudInstance);
+                    }
+                    else
+                    {
+                        Log2Colors($"    Update", "SKIPPED");
+                    }
+
+                    // LOAD
+                    // Will be executed for all types
+                    {
+                        LoadTest(conn, type, tableType);
+                    }
+
+                    // DELETE
+                    if ((tableType & TableTypes.Deletable) == TableTypes.Deletable)
+                    {
+                        DeleteTest(conn, crudInstance);
+                    }
+                    else
+                    {
+                        Log2Colors($"    Delete", "SKIPPED");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogError($"    Error testing {type.Name}: {ex.Message}");
+                }
             }
         }
 
