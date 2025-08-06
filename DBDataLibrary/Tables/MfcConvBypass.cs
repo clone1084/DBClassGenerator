@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
 
@@ -15,7 +16,7 @@ namespace DBDataLibrary.Tables
     {
         public MfcConvBypass() : base() { }
         
-        [NonSerialized] private string _cdItem;
+        [NonSerialized] private string _cdItem = "";
         [ColumnName("CD_ITEM")]
         public string CdItem
         {
@@ -30,7 +31,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _cdGroup;
+        [NonSerialized] private string _cdGroup = "";
         [ColumnName("CD_GROUP")]
         public string CdGroup
         {
@@ -45,7 +46,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _cdItemNext1;
+        [NonSerialized] private string _cdItemNext1 = "";
         [ColumnName("CD_ITEM_NEXT_1")]
         public string CdItemNext1
         {
@@ -60,7 +61,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _cdItemNext2;
+        [NonSerialized] private string _cdItemNext2 = "";
         [ColumnName("CD_ITEM_NEXT_2")]
         public string CdItemNext2
         {
@@ -75,7 +76,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _cdItemNext3;
+        [NonSerialized] private string _cdItemNext3 = "";
         [ColumnName("CD_ITEM_NEXT_3")]
         public string CdItemNext3
         {
@@ -90,7 +91,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _cdItemPrev1;
+        [NonSerialized] private string _cdItemPrev1 = "";
         [ColumnName("CD_ITEM_PREV_1")]
         public string CdItemPrev1
         {
@@ -105,7 +106,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _cdItemPrev2;
+        [NonSerialized] private string _cdItemPrev2 = "";
         [ColumnName("CD_ITEM_PREV_2")]
         public string CdItemPrev2
         {

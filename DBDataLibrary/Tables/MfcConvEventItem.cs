@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
 
@@ -15,7 +16,7 @@ namespace DBDataLibrary.Tables
     {
         public MfcConvEventItem() : base() { }
         
-        [NonSerialized] private long _oid;
+        [NonSerialized] private long _oid = default(long);
         [ColumnName("OID")]
         [Key]
         public long Oid

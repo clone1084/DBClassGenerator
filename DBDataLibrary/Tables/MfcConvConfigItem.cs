@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
 
@@ -15,7 +16,7 @@ namespace DBDataLibrary.Tables
     {
         public MfcConvConfigItem() : base() { }
         
-        [NonSerialized] private string _cdItem;
+        [NonSerialized] private string _cdItem = "";
         [ColumnName("CD_ITEM")]
         [Key]
         public string CdItem
@@ -31,7 +32,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _constrain;
+        [NonSerialized] private string _constrain = "";
         [ColumnName("CONSTRAIN")]
         [Key]
         public string Constrain
@@ -47,7 +48,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private int _tpItem;
+        [NonSerialized] private int _tpItem = default(int);
         [ColumnName("TP_ITEM")]
         [Key]
         public int TpItem

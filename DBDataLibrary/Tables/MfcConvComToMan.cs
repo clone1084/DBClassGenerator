@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
 
@@ -63,7 +64,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _localEndpointCode;
+        [NonSerialized] private string _localEndpointCode = "";
         [ColumnName("LOCAL_ENDPOINT_CODE")]
         public string LocalEndpointCode
         {
@@ -78,7 +79,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _remoteEndpointCode;
+        [NonSerialized] private string _remoteEndpointCode = "";
         [ColumnName("REMOTE_ENDPOINT_CODE")]
         public string RemoteEndpointCode
         {
@@ -93,7 +94,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _messageType;
+        [NonSerialized] private string _messageType = "";
         [ColumnName("MESSAGE_TYPE")]
         public string MessageType
         {
@@ -108,7 +109,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _messageCode;
+        [NonSerialized] private string _messageCode = "";
         [ColumnName("MESSAGE_CODE")]
         public string MessageCode
         {

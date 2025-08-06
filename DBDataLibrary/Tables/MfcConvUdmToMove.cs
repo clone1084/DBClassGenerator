@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
 
@@ -62,7 +63,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _insertBy;
+        [NonSerialized] private string _insertBy = "";
         [ColumnName("INSERT_BY")]
         public string InsertBy
         {
@@ -77,7 +78,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _fileSource;
+        [NonSerialized] private string _fileSource = "";
         [ColumnName("FILE_SOURCE")]
         public string FileSource
         {

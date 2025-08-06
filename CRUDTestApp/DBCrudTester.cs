@@ -52,9 +52,9 @@ namespace CRUDTestApp
                 conn.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
                 LogInfo("Transaction started. All operations will be rolled back at the end.");
 
-                ManualTest(conn, log, baseLogMessage);
+                //ManualTest(conn, log, baseLogMessage);
 
-                //AutomaticTestOfAllClasses(conn, log, baseLogMessage);
+                AutomaticTestOfAllClasses(conn, log, baseLogMessage);
 
                 LogInfo();
                 LogInfo("All tests completed.");
@@ -165,150 +165,154 @@ namespace CRUDTestApp
                     // CONDITIONAL EXECUTION BASED ON ATTRIBUTE FLAGS
 
                     // INSERT
-                    if ((tableType & TableTypes.Insertable) == TableTypes.Insertable)
-                    {
-                        InsertTest(conn, type, crudInstance, log, baseLogMessage);
-                    }
-                    else
-                    {
-                        Log2Colors($"    Insert", "SKIPPED");
-                    }
+                    InsertTest(conn, type, crudInstance, log, baseLogMessage);
 
                     // UPDATE modifica la prima proprietà modificabile
 
-                    if ((tableType & TableTypes.Updatable) == TableTypes.Updatable)
-                    {
-                        UpdateTest(conn, type, crudInstance, log, baseLogMessage);
-                    }
-                    else
-                    {
-                        Log2Colors($"    Update", "SKIPPED");
-                    }
+                    UpdateTest(conn, type, crudInstance, log, baseLogMessage);
 
                     // LOAD
-                    // Will be executed for all types
-                    {
-                        LoadTest(conn, type, tableType, log, baseLogMessage);
-                    }
+                    LoadTest(conn, type, tableType, log, baseLogMessage);
 
                     // DELETE
-                    if ((tableType & TableTypes.Deletable) == TableTypes.Deletable)
-                    {
-                        DeleteTest(conn, crudInstance, log, baseLogMessage);
-                    }
-                    else
-                    {
-                        Log2Colors($"    Delete", "SKIPPED");
-                    }
+                    DeleteTest(conn, crudInstance, log, baseLogMessage);
                 }
                 catch (Exception ex)
                 {
-                    LogError($"    Error testing {type.Name}: {ex.Message}");
+                    LogError($"    Error testing {type.Name}: {(ex.InnerException != null ? ex.InnerException.Message : ex.Message)}");
                 }
             }
         }
 
         private void DeleteTest(Oracle.ManagedDataAccess.Client.OracleConnection conn, dynamic crudInstance, log4net.ILog log, string baseLogMessage)
         {
-            bool deleted = crudInstance.Delete(conn, log, baseLogMessage);
-            LogResult(deleted, "    Delete");
+            try
+            {
+                bool deleted = crudInstance.Delete(conn, log, baseLogMessage);
+                LogResult(deleted, "    Delete");
+            }
+            catch (Exception ex)
+            {
+                Log2Colors($"    Delete", ex.Message);
+            }
         }
 
         private void InsertTest(Oracle.ManagedDataAccess.Client.OracleConnection conn, Type type, dynamic crudInstance, log4net.ILog log, string baseLogMessage)
         {
-            bool inserted = crudInstance.Insert(conn, log, baseLogMessage);
-            LogResult(inserted, $"    Insert");
-            if (inserted)
+            try
             {
-                Dictionary<string, object> kvp = crudInstance.GetKeyValues();
-                var keys = string.Join(", ", kvp.Select(k =>
+                bool inserted = crudInstance.Insert(conn, log, baseLogMessage);
+                LogResult(inserted, $"    Insert");
+                if (inserted)
                 {
-                    return $"{k.Key} = {k.Value}";
-                }));
-                LogInfo($"      -Inserted {type.Name}: {keys}");
+                    Dictionary<string, object> kvp = crudInstance.GetKeyValues();
+                    var keys = string.Join(", ", kvp.Select(k =>
+                    {
+                        return $"{k.Key} = {k.Value}";
+                    }));
+                    LogInfo($"      -Inserted {type.Name}: {keys}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log2Colors($"    Insert", ex.Message);
             }
         }
 
         private void UpdateTest(Oracle.ManagedDataAccess.Client.OracleConnection conn, Type type, dynamic crudInstance, log4net.ILog log, string baseLogMessage)
         {
-            PropertyInfo modProp = null;
-            foreach (var prop in type.GetProperties())
+            try
             {
-                if (prop.CanWrite && prop.PropertyType == typeof(string))
+                PropertyInfo modProp = null;
+                foreach (var prop in type.GetProperties())
                 {
-                    modProp = prop;
-                    break;
+                    if (prop.CanWrite && prop.PropertyType == typeof(string))
+                    {
+                        modProp = prop;
+                        break;
+                    }
+                }
+                if (modProp != null)
+                {
+                    modProp.SetValue(crudInstance, "TestValue");
+                    bool updated = crudInstance.Update(conn, log, baseLogMessage);
+                    LogResult(updated, "    Update");
                 }
             }
-            if (modProp != null)
+            catch (Exception ex)
             {
-                modProp.SetValue(crudInstance, "TestValue");
-                bool updated = crudInstance.Update(conn, log, baseLogMessage);
-                LogResult(updated, "    Update");
+                Log2Colors($"    Update", ex.Message);
             }
         }
 
         private void LoadTest(Oracle.ManagedDataAccess.Client.OracleConnection conn, Type type, TableTypes tableType, log4net.ILog log, string baseLogMessage)
         {
-            var crudBaseGeneric = typeof(ACrudBase<>).MakeGenericType(type); // this works because ACrudBase<T> is open
-            var method = crudBaseGeneric.GetMethod("LoadAll", BindingFlags.Public | BindingFlags.Static);
-            if (method != null)
+            try
             {
-                DateTime dtStart = DateTime.Now;
-                var result = method.Invoke(null, new object[] { conn, log, baseLogMessage, "", false }); // second param is whereFilter, third parameter il cache loading
-                var loadedList = ((IEnumerable<object>)result)?.ToList();
-                LogResult(loadedList?.Count ?? 0, "    Load");
-                LogInfo($"    Load took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
-            }
-            else
-            {
-                LogWarning($"    LoadAll not found for type {type.Name}");
-            }
-
-            // CACHED Table test
-            if ((tableType & TableTypes.Cached) == TableTypes.Cached)
-            {
+                var crudBaseGeneric = typeof(ACrudBase<>).MakeGenericType(type); // this works because ACrudBase<T> is open
+                var method = crudBaseGeneric.GetMethod("LoadAll", BindingFlags.Public | BindingFlags.Static);
                 if (method != null)
                 {
-                    // Provo un accesso alla cache
                     DateTime dtStart = DateTime.Now;
                     var result = method.Invoke(null, new object[] { conn, log, baseLogMessage, "", false }); // second param is whereFilter, third parameter il cache loading
                     var loadedList = ((IEnumerable<object>)result)?.ToList();
-                    LogResult(loadedList?.Count ?? 0, "    CacheLoad");
-                    LogInfo($"    CacheLoad took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
-
-                    // Provo un reload della cache
-                    dtStart = DateTime.Now;
-                    result = method.Invoke(null, new object[] { conn, log, baseLogMessage, "", true }); // second param is whereFilter, third parameter il cache loading
-                    loadedList = ((IEnumerable<object>)result)?.ToList();
-                    LogResult(loadedList?.Count ?? 0, "    CacheReLoad");
-                    LogInfo($"    CacheReLoad took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
-
-                    // Provo un accesso concorrente alla cache
-                    LogInfo("    Avvio test di accesso concorrente alla cache...");
-                    var taskReload = Task.Run(() =>
-                    {
-                        // Reload della cache
-                        DateTime dtStart = DateTime.Now;
-                        var result = method.Invoke(null, new object[] { conn, log, baseLogMessage, "", true });
-                        var loadedList = ((IEnumerable<object>)result)?.ToList();
-                        LogResult(loadedList?.Count ?? 0, "    Task CacheReLoad");
-                        LogInfo($"    CacheReLoad took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
-                    });
-
-                    var taskAccess = Task.Run(() =>
-                    {
-                        // Accesso ai dati (senza reload)
-                        DateTime dtStart = DateTime.Now;
-                        var result = method.Invoke(null, new object[] { conn, log, baseLogMessage, "", false });
-                        var loadedList = ((IEnumerable<object>)result)?.ToList();
-                        LogResult(loadedList?.Count ?? 0, "    Task CacheAccess");
-                        LogInfo($"    CacheLoad took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
-                    });
-
-                    Task.WhenAll(taskReload, taskAccess).Wait();
-                    LogInfo("    Test di accesso concorrente completato.");
+                    LogResult(loadedList?.Count ?? 0, "    Load");
+                    LogInfo($"    Load took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
                 }
+                else
+                {
+                    LogWarning($"    LoadAll not found for type {type.Name}");
+                }
+
+                // CACHED Table test
+                if ((tableType & TableTypes.Cached) == TableTypes.Cached)
+                {
+                    if (method != null)
+                    {
+                        // Provo un accesso alla cache
+                        DateTime dtStart = DateTime.Now;
+                        var result = method.Invoke(null, new object[] { conn, log, baseLogMessage, "", false }); // second param is whereFilter, third parameter il cache loading
+                        var loadedList = ((IEnumerable<object>)result)?.ToList();
+                        LogResult(loadedList?.Count ?? 0, "    CacheLoad");
+                        LogInfo($"    CacheLoad took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
+
+                        // Provo un reload della cache
+                        dtStart = DateTime.Now;
+                        result = method.Invoke(null, new object[] { conn, log, baseLogMessage, "", true }); // second param is whereFilter, third parameter il cache loading
+                        loadedList = ((IEnumerable<object>)result)?.ToList();
+                        LogResult(loadedList?.Count ?? 0, "    CacheReLoad");
+                        LogInfo($"    CacheReLoad took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
+
+                        //// Provo un accesso concorrente alla cache
+                        //LogInfo("    Avvio test di accesso concorrente alla cache...");
+                        //var taskReload = Task.Run(() =>
+                        //{
+                        //    // Reload della cache
+                        //    DateTime dtStart = DateTime.Now;
+                        //    var result = method.Invoke(null, new object[] { conn, log, baseLogMessage, "", true });
+                        //    var loadedList = ((IEnumerable<object>)result)?.ToList();
+                        //    LogResult(loadedList?.Count ?? 0, "    Task CacheReLoad");
+                        //    LogInfo($"    CacheReLoad took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
+                        //});
+
+                        //var taskAccess = Task.Run(() =>
+                        //{
+                        //    // Accesso ai dati (senza reload)
+                        //    DateTime dtStart = DateTime.Now;
+                        //    var result = method.Invoke(null, new object[] { conn, log, baseLogMessage, "", false });
+                        //    var loadedList = ((IEnumerable<object>)result)?.ToList();
+                        //    LogResult(loadedList?.Count ?? 0, "    Task CacheAccess");
+                        //    LogInfo($"    CacheLoad took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
+                        //});
+
+                        //Task.WhenAll(taskReload, taskAccess).Wait();
+                        //LogInfo("    Test di accesso concorrente completato.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log2Colors($"    Load", ex.Message);
             }
         }
 

@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
 
@@ -30,7 +31,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _cdUdc;
+        [NonSerialized] private string _cdUdc = "";
         [ColumnName("CD_UDC")]
         public string CdUdc
         {
@@ -45,7 +46,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _cdUdm;
+        [NonSerialized] private string _cdUdm = "";
         [ColumnName("CD_UDM")]
         public string CdUdm
         {
@@ -60,7 +61,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _flReader;
+        [NonSerialized] private string _flReader = "";
         [ColumnName("FL_READER")]
         public string FlReader
         {
@@ -90,7 +91,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _descrScarto;
+        [NonSerialized] private string _descrScarto = "";
         [ColumnName("DESCR_SCARTO")]
         public string DescrScarto
         {
@@ -120,7 +121,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _cdArticle;
+        [NonSerialized] private string _cdArticle = "";
         [ColumnName("CD_ARTICLE")]
         public string CdArticle
         {
@@ -135,7 +136,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _dscArticle;
+        [NonSerialized] private string _dscArticle = "";
         [ColumnName("DSC_ARTICLE")]
         public string DscArticle
         {
@@ -210,7 +211,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _cdOrder;
+        [NonSerialized] private string _cdOrder = "";
         [ColumnName("CD_ORDER")]
         public string CdOrder
         {
@@ -270,7 +271,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _cdItemFifo;
+        [NonSerialized] private string _cdItemFifo = "";
         [ColumnName("CD_ITEM_FIFO")]
         public string CdItemFifo
         {

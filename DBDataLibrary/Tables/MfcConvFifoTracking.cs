@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
 
@@ -15,7 +16,7 @@ namespace DBDataLibrary.Tables
     {
         public MfcConvFifoTracking() : base() { }
         
-        [NonSerialized] private int _oid;
+        [NonSerialized] private int _oid = default(int);
         [ColumnName("OID")]
         [Key]
         public int Oid

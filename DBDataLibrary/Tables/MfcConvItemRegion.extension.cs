@@ -10,8 +10,6 @@ namespace DBDataLibrary.Tables
     // --                   ***                   --
     // --          CHANGES HERE ARE SAFE!         --
     //  -------------------------------------------
-    // TODO Customize the TableType to allow more functions of the table
-    [TableType(TableTypes.Undefined)]
     public partial class MfcConvItemRegion
     {
          // Insert your customizations in this class

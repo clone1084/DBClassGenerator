@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
 
@@ -31,7 +32,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _dscItem;
+        [NonSerialized] private string _dscItem = "";
         [ColumnName("DSC_ITEM")]
         public string DscItem
         {

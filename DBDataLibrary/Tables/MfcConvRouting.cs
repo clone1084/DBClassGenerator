@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
 
@@ -15,7 +16,7 @@ namespace DBDataLibrary.Tables
     {
         public MfcConvRouting() : base() { }
         
-        [NonSerialized] private string _cdItemFrom;
+        [NonSerialized] private string _cdItemFrom = "";
         [ColumnName("CD_ITEM_FROM")]
         [Key]
         public string CdItemFrom
@@ -31,7 +32,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _cdItemTo;
+        [NonSerialized] private string _cdItemTo = "";
         [ColumnName("CD_ITEM_TO")]
         [Key]
         public string CdItemTo

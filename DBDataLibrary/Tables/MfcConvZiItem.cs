@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
 
@@ -15,7 +16,7 @@ namespace DBDataLibrary.Tables
     {
         public MfcConvZiItem() : base() { }
         
-        [NonSerialized] private string _sourceItem;
+        [NonSerialized] private string _sourceItem = "";
         [ColumnName("SOURCE_ITEM")]
         public string SourceItem
         {
@@ -30,7 +31,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _sourceDescr;
+        [NonSerialized] private string _sourceDescr = "";
         [ColumnName("SOURCE_DESCR")]
         public string SourceDescr
         {
@@ -75,7 +76,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _destDescr;
+        [NonSerialized] private string _destDescr = "";
         [ColumnName("DEST_DESCR")]
         public string DestDescr
         {
@@ -105,7 +106,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _ziItem;
+        [NonSerialized] private string _ziItem = "";
         [ColumnName("ZI_ITEM")]
         public string ZiItem
         {
@@ -150,7 +151,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _ziItemPlc2;
+        [NonSerialized] private string _ziItemPlc2 = "";
         [ColumnName("ZI_ITEM_PLC2")]
         public string ZiItemPlc2
         {

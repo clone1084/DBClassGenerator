@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
 
@@ -15,7 +16,7 @@ namespace DBDataLibrary.Tables
     {
         public MfcConvMaxHeight() : base() { }
         
-        [NonSerialized] private string _itemStart;
+        [NonSerialized] private string _itemStart = "";
         [ColumnName("ITEM_START")]
         public string ItemStart
         {
@@ -30,7 +31,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _itemDest;
+        [NonSerialized] private string _itemDest = "";
         [ColumnName("ITEM_DEST")]
         public string ItemDest
         {
@@ -45,7 +46,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _cdParameter;
+        [NonSerialized] private string _cdParameter = "";
         [ColumnName("CD_PARAMETER")]
         public string CdParameter
         {

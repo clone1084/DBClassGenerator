@@ -28,33 +28,44 @@ namespace DBDataLibrary.Attributes
     }
 
     [Flags]
-    public enum TableTypes
+    public enum TableTypes : byte
     {
+        ///// <summary>
+        ///// 0. This allows all operations on the table, including Insert, Update, Delete, and Read. 
+        ///// <para>Handle with care!</para>
+        ///// </summary>
+        //None        = 0,      // Nessun flag attivo
+        
         /// <summary>
-        /// 0. This is the default value, indicating that no specific type has been set for the table.
+        /// 1. Thi table is read-only, meaning it cannot be modified. 
+        /// <para>None of the CRUD operations (Insert, Update, Delete) are allowed.</para>
         /// </summary>
-        Undefined = 0 << 0,   //0
-        /// <summary>
-        /// 1. Thi table is read-only, meaning it cannot be modified. None of the CRUD operations (Insert, Update, Delete) are allowed.
-        /// </summary>
-        ReadOnly = 1 << 0,    //1
+        ReadOnly = 1 << 0, // 1
+
         /// <summary>
         /// 2. Insert is allowed on this table.
         /// </summary>
-        Insertable = 1 << 1,  //2
+        Insertable = 1 << 1, // 2
         /// <summary>
         /// 4. Update is allowed on this table.
         /// </summary>
-        Updatable = 1 << 2,   //4
+        Updatable  = 1 << 2, // 4
         /// <summary>
         /// 8. Delete is allowed on this table.
         /// </summary>
-        Deletable = 1 << 3,   //8
+        Deletable  =  1 << 3, // 8
+
         /// <summary>
-        /// 16. This table is cached, meaning its data is stored in memory for faster access. This impact Load and LoadAll methods.
-        /// <para>May be used in conjunction with ReadOnly to indicate that the cached data should not be modified.</para>
-        /// <para>May also be used with Insertable, Updatable, and Deletable to indicate that the cached data can be modified. This will cause the cache to be updated accordingly.</para>
+        /// 14. This table allows all CRUD operations: Insert, Update, and Delete.
         /// </summary>
-        Cached = 1 << 4,      //16
+        CRUD = Insertable | Updatable | Deletable, // 14
+
+        /// <summary>
+        /// 128. This table is cached, meaning its data is stored in memory for faster access. This impact Load and LoadAll methods.
+        /// <para>May be used in conjunction with ReadOnly to indicate that the cached data should not be modified.</para>
+        /// <para>May also be used with Insertable, Updatable, and Deletable to indicate that the cached data can be modified. 
+        /// This will cause the cache to be updated accordingly.</para>
+        /// </summary>
+        Cached = 1 << 7, // 128 (maximum value is 128)
     }
 }

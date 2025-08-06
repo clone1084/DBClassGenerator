@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
 
@@ -15,7 +16,7 @@ namespace DBDataLibrary.Tables
     {
         public MfcConvMultifunction() : base() { }
         
-        [NonSerialized] private string _cdUdm;
+        [NonSerialized] private string _cdUdm = "";
         [ColumnName("CD_UDM")]
         public string CdUdm
         {

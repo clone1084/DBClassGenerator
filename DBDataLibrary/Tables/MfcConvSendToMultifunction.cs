@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
 
@@ -60,7 +61,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _descrScarto;
+        [NonSerialized] private string _descrScarto = "";
         [ColumnName("DESCR_SCARTO")]
         public string DescrScarto
         {

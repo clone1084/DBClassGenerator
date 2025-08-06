@@ -106,7 +106,11 @@ namespace DBDataLibrary.CRUD
 
         public bool Insert(IDbConnection connection, ILog log, string baseLogMessage)
         {
-            DateTime insertStart = DateTime.Now;
+            if (HasTableTypeFlag(TableTypes.ReadOnly))
+            {
+                log.Error($"{baseLogMessage} - Insert operation is not allowed! Table '{typeof(TClass).Name}' is marked as ReadOnly.");
+                throw new InvalidOperationException($"Insert is not allowed! Table '{typeof(TClass).Name}' is marked as ReadOnly.");
+            }
 
             if (!HasTableTypeFlag(TableTypes.Insertable))
             {
@@ -114,11 +118,7 @@ namespace DBDataLibrary.CRUD
                 throw new InvalidOperationException($"Insert is not allowed for table type '{typeof(TClass).Name}'.");
             }
 
-            if (HasTableTypeFlag(TableTypes.ReadOnly))
-            {
-                log.Error($"{baseLogMessage} - Insert operation is not allowed! Table '{typeof(TClass).Name}' is marked as ReadOnly.");
-                throw new InvalidOperationException($"Insert is not allowed! Table '{typeof(TClass).Name}' is marked as ReadOnly.");
-            }
+            DateTime insertStart = DateTime.Now;
 
             var keyProps = GetKeyProperties(); 
             var allProps = GetAllColumnsProperties();
@@ -244,7 +244,11 @@ namespace DBDataLibrary.CRUD
 
         public bool Update(IDbConnection connection, ILog log, string baseLogMessage)
         {
-            DateTime updateStart = DateTime.Now;
+            if (HasTableTypeFlag(TableTypes.ReadOnly))
+            {
+                log.Error($"{baseLogMessage} - Update operation is not allowed! Table '{typeof(TClass).Name}' is marked as ReadOnly.");
+                throw new InvalidOperationException($"Update is not allowed! Table '{typeof(TClass).Name}' is marked as ReadOnly.");
+            }
 
             if (!HasTableTypeFlag(TableTypes.Updatable))
             {
@@ -252,11 +256,7 @@ namespace DBDataLibrary.CRUD
                 throw new InvalidOperationException($"Update is not allowed for table type '{typeof(TClass).Name}'.");
             }
 
-            if (HasTableTypeFlag(TableTypes.ReadOnly))
-            {
-                log.Error($"{baseLogMessage} - Update operation is not allowed! Table '{typeof(TClass).Name}' is marked as ReadOnly.");
-                throw new InvalidOperationException($"Update is not allowed! Table '{typeof(TClass).Name}' is marked as ReadOnly.");
-            }
+            DateTime updateStart = DateTime.Now;
 
             var modified = _modifiedProperties.ToList();
             if (!modified.Any())
@@ -285,6 +285,9 @@ namespace DBDataLibrary.CRUD
             
             foreach (var prop in propsModified)
             {
+                if (prop == null)
+                    continue;
+
                 var column = GetColumnName(prop);
 
                 if (column.Equals(DT_UPDATE_COLUMN, StringComparison.OrdinalIgnoreCase))
@@ -318,8 +321,11 @@ namespace DBDataLibrary.CRUD
             cmd.CommandText = sql;
 
             // Input parameters
-            foreach (var prop in propsModified.Where(p => !GetColumnName(p).Equals(DT_UPDATE_COLUMN, StringComparison.OrdinalIgnoreCase)))
-            {
+            foreach (var prop in propsModified.Where(p => p != null && !GetColumnName(p).Equals(DT_UPDATE_COLUMN, StringComparison.OrdinalIgnoreCase)))
+            { 
+                if (prop == null)
+                    continue;
+
                 var param = cmd.CreateParameter();
                 param.ParameterName = ":" + GetColumnName(prop);
                 param.Value = prop.GetValue(this) ?? DBNull.Value;
@@ -409,17 +415,19 @@ namespace DBDataLibrary.CRUD
 
         public bool Delete(IDbConnection connection, ILog log, string baseLogMessage)
         {
+            if (HasTableTypeFlag(TableTypes.ReadOnly))
+            {
+                log.Error($"{baseLogMessage} - Delete operation is not allowed! Table '{typeof(TClass).Name}' is marked as ReadOnly.");
+                throw new InvalidOperationException($"Delete is not allowed! Table '{typeof(TClass).Name}' is marked as ReadOnly.");
+            }
+
             if (!HasTableTypeFlag(TableTypes.Deletable))
             {
                 log.Error($"{baseLogMessage} - Delete operation is not allowed for table type '{typeof(TClass).Name}'.");
                 throw new InvalidOperationException($"Delete is not allowed for table type '{typeof(TClass).Name}'.");
             }
 
-            if (HasTableTypeFlag(TableTypes.ReadOnly))
-            {
-                log.Error($"{baseLogMessage} - Delete operation is not allowed! Table '{typeof(TClass).Name}' is marked as ReadOnly.");
-                throw new InvalidOperationException($"Delete is not allowed! Table '{typeof(TClass).Name}' is marked as ReadOnly.");
-            }
+            DateTime updateStart = DateTime.Now;
 
             var keyProps = GetKeyProperties();
             if (!keyProps.Any())

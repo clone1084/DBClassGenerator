@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
 
@@ -140,7 +141,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _cdItemZi;
+        [NonSerialized] private string _cdItemZi = "";
         [ColumnName("CD_ITEM_ZI")]
         public string CdItemZi
         {
@@ -186,7 +187,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _cdItemUnload;
+        [NonSerialized] private string _cdItemUnload = "";
         [ColumnName("CD_ITEM_UNLOAD")]
         public string CdItemUnload
         {
@@ -201,7 +202,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _cdItemLoad;
+        [NonSerialized] private string _cdItemLoad = "";
         [ColumnName("CD_ITEM_LOAD")]
         public string CdItemLoad
         {

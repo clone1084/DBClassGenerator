@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
 
@@ -47,7 +48,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _cdItem2;
+        [NonSerialized] private string _cdItem2 = "";
         [ColumnName("CD_ITEM2")]
         public string CdItem2
         {
@@ -62,7 +63,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _constrain;
+        [NonSerialized] private string _constrain = "";
         [ColumnName("CONSTRAIN")]
         public string Constrain
         {
@@ -92,7 +93,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _cdItemReject;
+        [NonSerialized] private string _cdItemReject = "";
         [ColumnName("CD_ITEM_REJECT")]
         public string CdItemReject
         {
@@ -107,7 +108,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _cdItemUnload;
+        [NonSerialized] private string _cdItemUnload = "";
         [ColumnName("CD_ITEM_UNLOAD")]
         public string CdItemUnload
         {
@@ -122,7 +123,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _cdItemDefaultPos;
+        [NonSerialized] private string _cdItemDefaultPos = "";
         [ColumnName("CD_ITEM_DEFAULT_POS")]
         public string CdItemDefaultPos
         {

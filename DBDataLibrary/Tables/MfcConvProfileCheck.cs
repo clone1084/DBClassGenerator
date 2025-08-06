@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
 
@@ -15,7 +16,7 @@ namespace DBDataLibrary.Tables
     {
         public MfcConvProfileCheck() : base() { }
         
-        [NonSerialized] private string _cdItem;
+        [NonSerialized] private string _cdItem = "";
         [ColumnName("CD_ITEM")]
         [Key]
         public string CdItem
@@ -31,7 +32,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _cdField;
+        [NonSerialized] private string _cdField = "";
         [ColumnName("CD_FIELD")]
         [Key]
         public string CdField
@@ -47,7 +48,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _value;
+        [NonSerialized] private string _value = "";
         [ColumnName("VALUE")]
         public string Value
         {

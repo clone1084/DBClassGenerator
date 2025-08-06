@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
 
@@ -75,7 +76,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _dscUdc;
+        [NonSerialized] private string _dscUdc = "";
         [ColumnName("DSC_UDC")]
         public string DscUdc
         {
@@ -225,7 +226,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _tpUdcHost;
+        [NonSerialized] private string _tpUdcHost = "";
         [ColumnName("TP_UDC_HOST")]
         public string TpUdcHost
         {
@@ -240,7 +241,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _dscUdcRf;
+        [NonSerialized] private string _dscUdcRf = "";
         [ColumnName("DSC_UDC_RF")]
         public string DscUdcRf
         {
@@ -270,7 +271,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _cdLanguage;
+        [NonSerialized] private string _cdLanguage = "";
         [ColumnName("CD_LANGUAGE")]
         public string CdLanguage
         {

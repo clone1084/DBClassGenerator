@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
 
@@ -45,7 +46,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _cdLanguage;
+        [NonSerialized] private string _cdLanguage = "";
         [ColumnName("CD_LANGUAGE")]
         public string CdLanguage
         {
@@ -60,7 +61,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _dscError;
+        [NonSerialized] private string _dscError = "";
         [ColumnName("DSC_ERROR")]
         public string DscError
         {

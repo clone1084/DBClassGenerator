@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
 
@@ -61,7 +62,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _cdUdm;
+        [NonSerialized] private string _cdUdm = "";
         [ColumnName("CD_UDM")]
         public string CdUdm
         {
@@ -92,7 +93,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _cdUds;
+        [NonSerialized] private string _cdUds = "";
         [ColumnName("CD_UDS")]
         public string CdUds
         {
@@ -154,7 +155,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _plcBarcode;
+        [NonSerialized] private string _plcBarcode = "";
         [ColumnName("PLC_BARCODE")]
         public string PlcBarcode
         {
@@ -169,7 +170,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _plcScanner;
+        [NonSerialized] private string _plcScanner = "";
         [ColumnName("PLC_SCANNER")]
         public string PlcScanner
         {

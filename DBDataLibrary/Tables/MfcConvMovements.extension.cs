@@ -5,8 +5,13 @@ using DBDataLibrary.CRUD;
 
 namespace DBDataLibrary.Tables
 {
-    [TableType(TableTypes.Insertable | TableTypes.Updatable | TableTypes.Deletable)]
+    //  -------------------------------------------
+    // --            CUSTOMIZABLE CLASS           --
+    // --                   ***                   --
+    // --          CHANGES HERE ARE SAFE!         --
+    //  -------------------------------------------
     public partial class MfcConvMovements
     {
+         // Insert your customizations in this class
     }
 }

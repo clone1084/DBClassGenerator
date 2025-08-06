@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
 
@@ -15,7 +16,7 @@ namespace DBDataLibrary.Tables
     {
         public MfcConvManToCom() : base() { }
         
-        [NonSerialized] private long _oid;
+        [NonSerialized] private long _oid = default(long);
         [ColumnName("OID")]
         [Key]
         public long Oid
@@ -47,7 +48,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _localEndpointCode;
+        [NonSerialized] private string _localEndpointCode = "";
         [ColumnName("LOCAL_ENDPOINT_CODE")]
         public string LocalEndpointCode
         {
@@ -62,7 +63,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _remoteEndpointCode;
+        [NonSerialized] private string _remoteEndpointCode = "";
         [ColumnName("REMOTE_ENDPOINT_CODE")]
         public string RemoteEndpointCode
         {

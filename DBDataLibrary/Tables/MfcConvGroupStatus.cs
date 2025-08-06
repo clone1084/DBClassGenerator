@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
 
@@ -15,7 +16,7 @@ namespace DBDataLibrary.Tables
     {
         public MfcConvGroupStatus() : base() { }
         
-        [NonSerialized] private string _cdGroup;
+        [NonSerialized] private string _cdGroup = "";
         [ColumnName("CD_GROUP")]
         [Key]
         public string CdGroup
@@ -46,7 +47,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private int _cdConveyor;
+        [NonSerialized] private int _cdConveyor = default(int);
         [ColumnName("CD_CONVEYOR")]
         [Key]
         public int CdConveyor

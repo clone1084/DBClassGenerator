@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
 
@@ -15,7 +16,7 @@ namespace DBDataLibrary.Tables
     {
         public MfcConvDecodeDestination() : base() { }
         
-        [NonSerialized] private int _destType;
+        [NonSerialized] private int _destType = default(int);
         [ColumnName("DEST_TYPE")]
         [Key]
         public int DestType
@@ -31,7 +32,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private int _destPar;
+        [NonSerialized] private int _destPar = default(int);
         [ColumnName("DEST_PAR")]
         [Key]
         public int DestPar
@@ -47,7 +48,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _cdItem;
+        [NonSerialized] private string _cdItem = "";
         [ColumnName("CD_ITEM")]
         [Key]
         public string CdItem

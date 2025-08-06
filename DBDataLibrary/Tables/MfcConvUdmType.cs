@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
 
@@ -15,7 +16,7 @@ namespace DBDataLibrary.Tables
     {
         public MfcConvUdmType() : base() { }
         
-        [NonSerialized] private long _oid;
+        [NonSerialized] private long _oid = default(long);
         [ColumnName("OID")]
         [Key]
         public long Oid
@@ -231,7 +232,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _tpUdmHost;
+        [NonSerialized] private string _tpUdmHost = "";
         [ColumnName("TP_UDM_HOST")]
         public string TpUdmHost
         {
@@ -246,7 +247,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _dscUdmRf;
+        [NonSerialized] private string _dscUdmRf = "";
         [ColumnName("DSC_UDM_RF")]
         public string DscUdmRf
         {
@@ -276,7 +277,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _cdLanguage;
+        [NonSerialized] private string _cdLanguage = "";
         [ColumnName("CD_LANGUAGE")]
         public string CdLanguage
         {

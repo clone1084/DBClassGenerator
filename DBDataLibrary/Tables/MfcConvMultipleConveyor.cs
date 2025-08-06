@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
 
@@ -47,7 +48,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _item3;
+        [NonSerialized] private string _item3 = "";
         [ColumnName("ITEM_3")]
         public string Item3
         {
@@ -62,7 +63,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _item4;
+        [NonSerialized] private string _item4 = "";
         [ColumnName("ITEM_4")]
         public string Item4
         {
@@ -77,7 +78,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _item5;
+        [NonSerialized] private string _item5 = "";
         [ColumnName("ITEM_5")]
         public string Item5
         {
@@ -92,7 +93,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _item6;
+        [NonSerialized] private string _item6 = "";
         [ColumnName("ITEM_6")]
         public string Item6
         {
@@ -107,7 +108,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _item7;
+        [NonSerialized] private string _item7 = "";
         [ColumnName("ITEM_7")]
         public string Item7
         {
@@ -122,7 +123,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _item8;
+        [NonSerialized] private string _item8 = "";
         [ColumnName("ITEM_8")]
         public string Item8
         {
@@ -153,7 +154,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _itemPre1;
+        [NonSerialized] private string _itemPre1 = "";
         [ColumnName("ITEM_PRE1")]
         public string ItemPre1
         {
@@ -168,7 +169,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _itemPre2;
+        [NonSerialized] private string _itemPre2 = "";
         [ColumnName("ITEM_PRE2")]
         public string ItemPre2
         {
@@ -183,7 +184,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _itemPre3;
+        [NonSerialized] private string _itemPre3 = "";
         [ColumnName("ITEM_PRE3")]
         public string ItemPre3
         {
@@ -198,7 +199,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _itemPre4;
+        [NonSerialized] private string _itemPre4 = "";
         [ColumnName("ITEM_PRE4")]
         public string ItemPre4
         {
@@ -213,7 +214,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _itemPre5;
+        [NonSerialized] private string _itemPre5 = "";
         [ColumnName("ITEM_PRE5")]
         public string ItemPre5
         {
@@ -228,7 +229,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _itemPre6;
+        [NonSerialized] private string _itemPre6 = "";
         [ColumnName("ITEM_PRE6")]
         public string ItemPre6
         {

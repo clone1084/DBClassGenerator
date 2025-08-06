@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
 
@@ -15,7 +16,7 @@ namespace DBDataLibrary.Tables
     {
         public MfcConvMovements() : base() { }
         
-        [NonSerialized] private long _oid;
+        [NonSerialized] private long _oid = default(long);
         [ColumnName("OID")]
         [Key]
         public long Oid
@@ -316,7 +317,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _constraint;
+        [NonSerialized] private string _constraint = "";
         [ColumnName("CONSTRAINT")]
         public string Constraint
         {
@@ -406,7 +407,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _lastZiItem;
+        [NonSerialized] private string _lastZiItem = "";
         [ColumnName("LAST_ZI_ITEM")]
         public string LastZiItem
         {

@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
 
@@ -15,7 +16,7 @@ namespace DBDataLibrary.Tables
     {
         public MfcConvUdcRequests() : base() { }
         
-        [NonSerialized] private string _barcode;
+        [NonSerialized] private string _barcode = "";
         [ColumnName("BARCODE")]
         public string Barcode
         {
@@ -78,7 +79,7 @@ namespace DBDataLibrary.Tables
             }
         }
 
-        [NonSerialized] private string _guid;
+        [NonSerialized] private string _guid = "";
         [ColumnName("GUID")]
         [Key]
         public string Guid
