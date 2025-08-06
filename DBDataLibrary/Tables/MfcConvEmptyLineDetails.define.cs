@@ -15,7 +15,7 @@ namespace DBDataLibrary.Tables
     public partial class MfcConvEmptyLineDetails
     {
          // Keep this clear.
-         // Your custom methods should go in the MfcConvEmptyLineDetails.extension class
+         // Your custom methods should go in the MfcConvEmptyLineDetails.custom.cs class
          
     }
 }

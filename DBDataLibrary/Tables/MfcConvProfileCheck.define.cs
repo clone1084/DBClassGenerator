@@ -15,7 +15,7 @@ namespace DBDataLibrary.Tables
     public partial class MfcConvProfileCheck
     {
          // Keep this clear.
-         // Your custom methods should go in the MfcConvProfileCheck.extension class
+         // Your custom methods should go in the MfcConvProfileCheck.custom.cs class
          
     }
 }

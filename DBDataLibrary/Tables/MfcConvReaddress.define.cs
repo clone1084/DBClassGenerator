@@ -15,7 +15,7 @@ namespace DBDataLibrary.Tables
     public partial class MfcConvReaddress
     {
          // Keep this clear.
-         // Your custom methods should go in the MfcConvReaddress.extension class
+         // Your custom methods should go in the MfcConvReaddress.custom.cs class
          
     }
 }

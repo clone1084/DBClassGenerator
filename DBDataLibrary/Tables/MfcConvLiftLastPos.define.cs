@@ -15,7 +15,7 @@ namespace DBDataLibrary.Tables
     public partial class MfcConvLiftLastPos
     {
          // Keep this clear.
-         // Your custom methods should go in the MfcConvLiftLastPos.extension class
+         // Your custom methods should go in the MfcConvLiftLastPos.custom.cs class
          
     }
 }

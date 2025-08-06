@@ -15,7 +15,7 @@ namespace DBDataLibrary.Tables
     public partial class MfcConvMultipleConveyor
     {
          // Keep this clear.
-         // Your custom methods should go in the MfcConvMultipleConveyor.extension class
+         // Your custom methods should go in the MfcConvMultipleConveyor.custom.cs class
          
     }
 }

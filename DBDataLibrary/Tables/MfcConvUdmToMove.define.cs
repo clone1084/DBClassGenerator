@@ -15,7 +15,7 @@ namespace DBDataLibrary.Tables
     public partial class MfcConvUdmToMove
     {
          // Keep this clear.
-         // Your custom methods should go in the MfcConvUdmToMove.extension class
+         // Your custom methods should go in the MfcConvUdmToMove.custom.cs class
          
     }
 }

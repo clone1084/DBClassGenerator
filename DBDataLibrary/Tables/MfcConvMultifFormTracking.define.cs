@@ -15,7 +15,7 @@ namespace DBDataLibrary.Tables
     public partial class MfcConvMultifFormTracking
     {
          // Keep this clear.
-         // Your custom methods should go in the MfcConvMultifFormTracking.extension class
+         // Your custom methods should go in the MfcConvMultifFormTracking.custom.cs class
          
     }
 }

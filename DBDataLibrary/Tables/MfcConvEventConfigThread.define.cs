@@ -15,7 +15,7 @@ namespace DBDataLibrary.Tables
     public partial class MfcConvEventConfigThread
     {
          // Keep this clear.
-         // Your custom methods should go in the MfcConvEventConfigThread.extension class
+         // Your custom methods should go in the MfcConvEventConfigThread.custom.cs class
          
     }
 }

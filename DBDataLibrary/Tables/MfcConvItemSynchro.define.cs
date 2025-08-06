@@ -15,7 +15,7 @@ namespace DBDataLibrary.Tables
     public partial class MfcConvItemSynchro
     {
          // Keep this clear.
-         // Your custom methods should go in the MfcConvItemSynchro.extension class
+         // Your custom methods should go in the MfcConvItemSynchro.custom.cs class
          
     }
 }

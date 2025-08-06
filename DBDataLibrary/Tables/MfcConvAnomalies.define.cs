@@ -15,7 +15,7 @@ namespace DBDataLibrary.Tables
     public partial class MfcConvAnomalies
     {
          // Keep this clear.
-         // Your custom methods should go in the MfcConvAnomalies.extension class
+         // Your custom methods should go in the MfcConvAnomalies.custom.cs class
          
     }
 }

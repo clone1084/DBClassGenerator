@@ -15,7 +15,7 @@ namespace DBDataLibrary.Tables
     public partial class MfcConvMovToSend
     {
          // Keep this clear.
-         // Your custom methods should go in the MfcConvMovToSend.extension class
+         // Your custom methods should go in the MfcConvMovToSend.custom.cs class
          
     }
 }

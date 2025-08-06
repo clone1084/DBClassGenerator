@@ -15,7 +15,7 @@ namespace DBDataLibrary.Tables
     public partial class MfcConvLiftMissions
     {
          // Keep this clear.
-         // Your custom methods should go in the MfcConvLiftMissions.extension class
+         // Your custom methods should go in the MfcConvLiftMissions.custom.cs class
          
     }
 }

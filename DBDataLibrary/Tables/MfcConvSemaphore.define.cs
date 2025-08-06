@@ -15,7 +15,7 @@ namespace DBDataLibrary.Tables
     public partial class MfcConvSemaphore
     {
          // Keep this clear.
-         // Your custom methods should go in the MfcConvSemaphore.extension class
+         // Your custom methods should go in the MfcConvSemaphore.custom.cs class
          
     }
 }

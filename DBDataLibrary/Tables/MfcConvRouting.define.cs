@@ -15,7 +15,7 @@ namespace DBDataLibrary.Tables
     public partial class MfcConvRouting
     {
          // Keep this clear.
-         // Your custom methods should go in the MfcConvRouting.extension class
+         // Your custom methods should go in the MfcConvRouting.custom.cs class
          
     }
 }

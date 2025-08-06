@@ -74,7 +74,7 @@ namespace DBClassGenerator
                 var columns = GetColumns(conn, tableName);
                 var classCode = GenerateClassCode(tableName, columns, conn);
 
-                File.WriteAllText(Path.Combine(outputDirectory, $"{NormalizeName(tableName)}.cs"), classCode);
+                File.WriteAllText(Path.Combine(outputDirectory, $"{NormalizeName(tableName)}.table.cs"), classCode);
                 Console.WriteLine($"    Generated: {NormalizeName(tableName)}.cs");
 
                 //var definesPath = Path.Combine(outputDirectory, $"Defines");
@@ -89,12 +89,12 @@ namespace DBClassGenerator
 
                 //var extensionPath = Path.Combine(outputDirectory, $"Extensions");
                 //Directory.CreateDirectory(extensionPath);
-                string extensionFileName = Path.Combine(outputDirectory, $"{NormalizeName(tableName)}.extension.cs");
+                string extensionFileName = Path.Combine(outputDirectory, $"{NormalizeName(tableName)}.custom.cs");
                 if (!File.Exists(extensionFileName))
                 {
                     var extensionClassCode = GenerateExtensionClassCode(tableName);
                     File.WriteAllText(extensionFileName, extensionClassCode);
-                    Console.WriteLine($"    Generated: {NormalizeName(tableName)}.extension.cs");
+                    Console.WriteLine($"    Generated: {NormalizeName(tableName)}.custom.cs");
                 }
             }
 
@@ -414,7 +414,7 @@ namespace DBClassGenerator
             sb.AppendLine($"    public partial class {dataClassName}");
             sb.AppendLine("    {");
             sb.AppendLine($"         // Keep this clear.");
-            sb.AppendLine($"         // Your custom methods should go in the {NormalizeName(table)}.extension class");
+            sb.AppendLine($"         // Your custom methods should go in the {NormalizeName(table)}.custom.cs class");
             //sb.AppendLine($"         // You will find the file in the Extensions folder");
             sb.AppendLine("    }");
 

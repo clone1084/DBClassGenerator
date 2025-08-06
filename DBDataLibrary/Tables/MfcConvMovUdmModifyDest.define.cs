@@ -15,7 +15,7 @@ namespace DBDataLibrary.Tables
     public partial class MfcConvMovUdmModifyDest
     {
          // Keep this clear.
-         // Your custom methods should go in the MfcConvMovUdmModifyDest.extension class
+         // Your custom methods should go in the MfcConvMovUdmModifyDest.custom.cs class
          
     }
 }

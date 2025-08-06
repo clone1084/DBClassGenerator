@@ -15,7 +15,7 @@ namespace DBDataLibrary.Tables
     public partial class MfcConvFifo
     {
          // Keep this clear.
-         // Your custom methods should go in the MfcConvFifo.extension class
+         // Your custom methods should go in the MfcConvFifo.custom.cs class
          
     }
 }

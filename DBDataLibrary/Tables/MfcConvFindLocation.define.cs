@@ -15,7 +15,7 @@ namespace DBDataLibrary.Tables
     public partial class MfcConvFindLocation
     {
          // Keep this clear.
-         // Your custom methods should go in the MfcConvFindLocation.extension class
+         // Your custom methods should go in the MfcConvFindLocation.custom.cs class
          
     }
 }

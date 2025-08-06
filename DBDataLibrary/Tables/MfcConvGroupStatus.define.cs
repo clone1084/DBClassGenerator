@@ -15,7 +15,7 @@ namespace DBDataLibrary.Tables
     public partial class MfcConvGroupStatus
     {
          // Keep this clear.
-         // Your custom methods should go in the MfcConvGroupStatus.extension class
+         // Your custom methods should go in the MfcConvGroupStatus.custom.cs class
          
     }
 }

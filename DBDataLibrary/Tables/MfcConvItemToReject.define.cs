@@ -15,7 +15,7 @@ namespace DBDataLibrary.Tables
     public partial class MfcConvItemToReject
     {
          // Keep this clear.
-         // Your custom methods should go in the MfcConvItemToReject.extension class
+         // Your custom methods should go in the MfcConvItemToReject.custom.cs class
          
     }
 }

@@ -15,7 +15,7 @@ namespace DBDataLibrary.Tables
     public partial class MfcConvStretcher
     {
          // Keep this clear.
-         // Your custom methods should go in the MfcConvStretcher.extension class
+         // Your custom methods should go in the MfcConvStretcher.custom.cs class
          
     }
 }

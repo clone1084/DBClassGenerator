@@ -15,7 +15,7 @@ namespace DBDataLibrary.Tables
     public partial class MfcConvError
     {
          // Keep this clear.
-         // Your custom methods should go in the MfcConvError.extension class
+         // Your custom methods should go in the MfcConvError.custom.cs class
          
     }
 }

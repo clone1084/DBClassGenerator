@@ -15,7 +15,7 @@ namespace DBDataLibrary.Tables
     public partial class MfcConvDecodeDestination
     {
          // Keep this clear.
-         // Your custom methods should go in the MfcConvDecodeDestination.extension class
+         // Your custom methods should go in the MfcConvDecodeDestination.custom.cs class
          
     }
 }

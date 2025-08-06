@@ -15,7 +15,7 @@ namespace DBDataLibrary.Tables
     public partial class MfcConvLabelApplier
     {
          // Keep this clear.
-         // Your custom methods should go in the MfcConvLabelApplier.extension class
+         // Your custom methods should go in the MfcConvLabelApplier.custom.cs class
          
     }
 }

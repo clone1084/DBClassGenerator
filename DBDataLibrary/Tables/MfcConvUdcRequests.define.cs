@@ -15,7 +15,7 @@ namespace DBDataLibrary.Tables
     public partial class MfcConvUdcRequests
     {
          // Keep this clear.
-         // Your custom methods should go in the MfcConvUdcRequests.extension class
+         // Your custom methods should go in the MfcConvUdcRequests.custom.cs class
          
     }
 }

@@ -15,7 +15,7 @@ namespace DBDataLibrary.Tables
     public partial class MfcConvGroupColdstart
     {
          // Keep this clear.
-         // Your custom methods should go in the MfcConvGroupColdstart.extension class
+         // Your custom methods should go in the MfcConvGroupColdstart.custom.cs class
          
     }
 }

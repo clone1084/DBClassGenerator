@@ -15,7 +15,7 @@ namespace DBDataLibrary.Tables
     public partial class MfcConvMaxHeight
     {
          // Keep this clear.
-         // Your custom methods should go in the MfcConvMaxHeight.extension class
+         // Your custom methods should go in the MfcConvMaxHeight.custom.cs class
          
     }
 }

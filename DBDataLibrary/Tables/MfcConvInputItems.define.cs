@@ -15,7 +15,7 @@ namespace DBDataLibrary.Tables
     public partial class MfcConvInputItems
     {
          // Keep this clear.
-         // Your custom methods should go in the MfcConvInputItems.extension class
+         // Your custom methods should go in the MfcConvInputItems.custom.cs class
          
     }
 }

@@ -15,7 +15,7 @@ namespace DBDataLibrary.Tables
     public partial class MfcConvBypass
     {
          // Keep this clear.
-         // Your custom methods should go in the MfcConvBypass.extension class
+         // Your custom methods should go in the MfcConvBypass.custom.cs class
          
     }
 }

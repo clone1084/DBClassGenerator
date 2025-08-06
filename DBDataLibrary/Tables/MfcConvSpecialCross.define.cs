@@ -15,7 +15,7 @@ namespace DBDataLibrary.Tables
     public partial class MfcConvSpecialCross
     {
          // Keep this clear.
-         // Your custom methods should go in the MfcConvSpecialCross.extension class
+         // Your custom methods should go in the MfcConvSpecialCross.custom.cs class
          
     }
 }
