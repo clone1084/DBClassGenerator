@@ -41,6 +41,22 @@ namespace DBDataLibrary.CRUD
             }
         }
 
+        private static void RemoveFromCache(TClass entity)
+        {
+            foreach (var keyProp in GetKeyProperties())
+            {
+                var indexName = keyProp.Name;
+                var keyValue = keyProp.GetValue(entity);
+
+                if (keyValue is null) continue;
+
+                if (_indexes.TryGetValue(indexName, out var index))
+                {
+                    index.TryRemove(keyValue, out _);
+                }
+            }
+        }
+
         protected static TClass? TryFromIndex(string propertyName, object keyValue)
         {
             if (_indexes.TryGetValue(propertyName, out var index) && index.TryGetValue(keyValue, out var result))
@@ -247,7 +263,7 @@ namespace DBDataLibrary.CRUD
 
             if (HasTableTypeFlag(TableTypes.Cached) && inserted)
             {
-                _cache[GetInstanceCompositeKey()] = (TClass)this;
+                AddToCache((TClass)this);
             }
 
             _modifiedProperties.Clear();
@@ -384,7 +400,9 @@ namespace DBDataLibrary.CRUD
             {
                 _modifiedProperties.Clear();
                 if (HasTableTypeFlag(TableTypes.Cached))
-                    _cache[GetInstanceCompositeKey()] = (TClass)this;
+                {
+                    AddToCache((TClass)this);
+                }
             }
 
             //Console.WriteLine($"Update done in {(DateTime.Now - updateStart).TotalMilliseconds} ms for {typeof(TClass).Name}");
@@ -432,7 +450,7 @@ namespace DBDataLibrary.CRUD
 
             if (HasTableTypeFlag(TableTypes.Cached) && result)
             {
-                _cache.TryRemove(GetInstanceCompositeKey(), out _);
+                RemoveFromCache((TClass)this);
             }
 
             return result;
