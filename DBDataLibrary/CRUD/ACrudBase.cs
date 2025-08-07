@@ -1,7 +1,11 @@
 ﻿using DBDataLibrary.Attributes;
+using DBDataLibrary.DbUtils;
 using log4net;
+using System.Collections.Concurrent;
 using System.Data;
 using System.Data.Common;
+using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace DBDataLibrary.CRUD
@@ -15,9 +19,11 @@ namespace DBDataLibrary.CRUD
         
         protected HashSet<string> _modifiedProperties = new();
 
-        protected static IList<TClass> _cachedEntities = new List<TClass>();
+        //protected static IList<TClass> _cachedEntities = new List<TClass>();
 
-        protected static readonly ReaderWriterLockSlim _cacheLock = new();
+        //protected static readonly ReaderWriterLockSlim _cacheLock = new();
+
+        protected static ConcurrentDictionary<string, TClass> _cache = new();
 
         protected ACrudBase() { }
 
@@ -69,20 +75,7 @@ namespace DBDataLibrary.CRUD
             return keyValues;
         }
 
-        public IEnumerable<string> GetKeys()
-        {
-            var keys = new List<string>();
-            var keyProps = GetKeyProperties(); // Reuse the existing method
-
-            foreach (var prop in keyProps)
-            {
-                // Get the column name, falling back to the property name if no attribute is present
-                string columnName = GetColumnName(prop);
-                keys.Add(columnName);
-            }
-
-            return keys;
-        }
+        public IEnumerable<string> GetKeys() => GetKeyProperties().Select(GetColumnName);
 
         protected static List<PropertyInfo> GetKeyProperties()
         {
@@ -102,6 +95,37 @@ namespace DBDataLibrary.CRUD
         {
             var attr = prop.GetCustomAttribute<ColumnNameAttribute>();
             return attr != null ? attr.Name : prop.Name;
+        }
+
+        protected static string GetCompositeKey(Dictionary<string, object> keyValues) 
+        {
+            return string.Join("::", keyValues.OrderBy(kv => kv.Key, StringComparer.OrdinalIgnoreCase)
+                .Select(kv => $"{kv.Key.ToUpperInvariant()}={kv.Value?.ToString()?.ToUpperInvariant()}"));        
+        }
+
+        protected string GetInstanceCompositeKey() => GetCompositeKey(GetKeyValues());
+
+        private DbType MapTypeToDbType(Type type)
+        {
+            type = Nullable.GetUnderlyingType(type) ?? type;
+
+            return Type.GetTypeCode(type) switch
+            {
+                TypeCode.Decimal => DbType.Decimal,
+                TypeCode.Int32 => DbType.Int32,
+                TypeCode.Int64 => DbType.Int64,
+                TypeCode.String => DbType.String,
+                TypeCode.DateTime => DbType.DateTime,
+                TypeCode.Double => DbType.Double,
+                TypeCode.Boolean => DbType.Boolean,
+                _ => DbType.Object
+            };
+        }
+
+        private static bool HasTableTypeFlag(TableTypes required)
+        {
+            var attr = typeof(TClass).GetCustomAttribute<TableTypeAttribute>();
+            return attr != null && attr.TableType.HasFlag(required);
         }
 
         public bool Insert(IDbConnection connection, ILog log, string baseLogMessage)
@@ -199,47 +223,13 @@ namespace DBDataLibrary.CRUD
 
             if (HasTableTypeFlag(TableTypes.Cached) && inserted)
             {
-                DateTime cacheStart = DateTime.Now;
-                // Aggiorna la cache con il nuovo elemento inserito
-                _cacheLock.EnterWriteLock();
-                try
-                {
-                    _cachedEntities.Add((TClass)this);
-                }
-                finally
-                {
-                    _cacheLock.ExitWriteLock();
-                }
-                //Console.WriteLine($"Cache insert in {(DateTime.Now - cacheStart).TotalMilliseconds} ms for {typeof(TClass).Name}");
+                _cache[GetInstanceCompositeKey()] = (TClass)this;
             }
 
             _modifiedProperties.Clear();
 
             //Console.WriteLine($"Insert done in {(DateTime.Now - insertStart).TotalMilliseconds} ms for {typeof(TClass).Name}");
             return inserted;
-        }
-
-        private DbType MapTypeToDbType(Type type)
-        {
-            type = Nullable.GetUnderlyingType(type) ?? type;
-
-            return Type.GetTypeCode(type) switch
-            {
-                TypeCode.Decimal => DbType.Decimal,
-                TypeCode.Int32 => DbType.Int32,
-                TypeCode.Int64 => DbType.Int64,
-                TypeCode.String => DbType.String,
-                TypeCode.DateTime => DbType.DateTime,
-                TypeCode.Double => DbType.Double,
-                TypeCode.Boolean => DbType.Boolean,
-                _ => DbType.Object
-            };
-        }
-
-        private static bool HasTableTypeFlag(TableTypes required)
-        {
-            var attr = typeof(TClass).GetCustomAttribute<TableTypeAttribute>();
-            return attr != null && attr.TableType.HasFlag(required);
         }
 
         public bool Update(IDbConnection connection, ILog log, string baseLogMessage)
@@ -367,51 +357,15 @@ namespace DBDataLibrary.CRUD
             }
 
             if (updated)
-                _modifiedProperties.Clear();
-
-
-            if (HasTableTypeFlag(TableTypes.Cached) && updated)
             {
-                DateTime cacheStart = DateTime.Now;
-                // Aggiorna la cache solo se l'elemento è stato modificato
-                _cacheLock.EnterWriteLock();
-                try
-                {
-                    // Cerca un elemento con le stesse chiavi
-                    var myKeys = GetKeyValues();
-                    var existing = _cachedEntities.FirstOrDefault(e =>
-                        e.GetKeyValues().Count == myKeys.Count &&
-                        e.GetKeyValues().All(kv => myKeys.TryGetValue(kv.Key, out var v) && Equals(v, kv.Value))
-                    );
-
-                    if (existing != null)
-                    {
-                        // Se i dati sono diversi, sostituisci l'elemento
-                        if (!existing.Equals((TClass)this))
-                        {
-                            int idx = _cachedEntities.IndexOf(existing);
-                            if (idx >= 0)
-                                _cachedEntities[idx] = (TClass)this;
-                        }
-                    }
-                    else
-                    {
-                        // Se non ho un elemento da sostire, aggiungo il nuovo elemento
-                        // Non dovrebbe mai succedere, ma è una sicurezza in più
-                        _cachedEntities.Add((TClass)this);
-                    }
-                }
-                finally
-                {
-                    _cacheLock.ExitWriteLock();
-                }
-                //Console.WriteLine($"Cache updated in {(DateTime.Now - cacheStart).TotalMilliseconds} ms for {typeof(TClass).Name}");
+                _modifiedProperties.Clear();
+                if (HasTableTypeFlag(TableTypes.Cached))
+                    _cache[GetInstanceCompositeKey()] = (TClass)this;
             }
 
             //Console.WriteLine($"Update done in {(DateTime.Now - updateStart).TotalMilliseconds} ms for {typeof(TClass).Name}");
             return updated;
         }
-
 
         public bool Delete(IDbConnection connection, ILog log, string baseLogMessage)
         {
@@ -454,95 +408,114 @@ namespace DBDataLibrary.CRUD
 
             if (HasTableTypeFlag(TableTypes.Cached) && result)
             {
-                if (_cachedEntities.Contains((TClass)this))
-                {
-                    _cacheLock.EnterWriteLock();
-                    try
-                    {
-                        _cachedEntities.Remove((TClass)this);
-                    }
-                    finally
-                    {
-                        _cacheLock.ExitWriteLock();
-                    }
-                }
+                _cache.TryRemove(GetInstanceCompositeKey(), out _);
             }
 
             return result;
         }
 
-        /// <summary>
-        /// Loads an instance of the specified class from the database using the provided key-value pairs.
-        /// It will use cached data if available, or query the database directly if not.
-        /// </summary>
-        /// <param name="connection">The database connection to use for the operation. Must be open and valid.</param>
-        /// <param name="keyValues">The key-value pairs representing the criteria for loading the instance.  Each key corresponds to a column
-        /// name, and its associated value is used for filtering.</param>
-        /// <returns>An instance of the specified class that matches the provided key-value criteria,  or <see langword="null"/>
-        /// if no matching record is found.</returns>
-        public static TClass Load(IDbConnection connection, ILog log, string baseLogMessage, params KeyValuePair<string, object>[] keyValues)
-        {
-            return Load(connection, log, baseLogMessage, false, keyValues);
-        }
+        ///// <summary>
+        ///// Loads an instance of the specified class from the database using the provided key-value pairs.
+        ///// It will use cached data if available, or query the database directly if not.
+        ///// </summary>
+        ///// <param name="connection">The database connection to use for the operation. Must be open and valid.</param>
+        ///// <param name="keyValues">The key-value pairs representing the criteria for loading the instance.  Each key corresponds to a column
+        ///// name, and its associated value is used for filtering.</param>
+        ///// <returns>An instance of the specified class that matches the provided key-value criteria,  or <see langword="null"/>
+        ///// if no matching record is found.</returns>
+        //public static TClass Load(IDbConnection connection, ILog log, string baseLogMessage, params KeyValuePair<string, object>[] keyValues)
+        //{
+        //    return Load(connection, log, baseLogMessage, false, keyValues);
+        //}
 
-        /// <summary>
-        /// Loads an instance of the specified class from the database using the provided key-value pairs.
-        /// </summary>
-        /// <param name="connection">The database connection to use for the operation. Must be open and valid.</param>
-        /// <param name="ignoreCache">True if you want to read always from DB. False if you want to read from cache (if available)</param>
-        /// <param name="keyValues">The key-value pairs representing the criteria for loading the instance.  Each key corresponds to a column
-        /// name, and its associated value is used for filtering.</param>
-        /// <returns>An instance of the specified class that matches the provided key-value criteria,  or <see langword="null"/>
-        /// if no matching record is found.</returns>
-        /// <exception cref="ArgumentException"></exception>
-        public static TClass Load(IDbConnection connection, ILog log, string baseLogMessage, bool ignoreCache, params KeyValuePair<string, object>[] keyValues)
+        ///// <summary>
+        ///// Loads an instance of the specified class from the database using the provided key-value pairs.
+        ///// </summary>
+        ///// <param name="connection">The database connection to use for the operation. Must be open and valid.</param>
+        ///// <param name="ignoreCache">True if you want to read always from DB. False if you want to read from cache (if available)</param>
+        ///// <param name="keyValues">The key-value pairs representing the criteria for loading the instance.  Each key corresponds to a column
+        ///// name, and its associated value is used for filtering.</param>
+        ///// <returns>An instance of the specified class that matches the provided key-value criteria,  or <see langword="null"/>
+        ///// if no matching record is found.</returns>
+        ///// <exception cref="ArgumentException"></exception>
+        //public static TClass Load(IDbConnection connection, ILog log, string baseLogMessage, bool ignoreCache, params KeyValuePair<string, object>[] keyValues)
+        //{
+        //    if (HasTableTypeFlag(TableTypes.Cached) && !ignoreCache)
+        //    {
+        //        var key = GetCompositeKey(keyValues.ToDictionary(kv => kv.Key, kv => kv.Value));
+        //        if (_cache.TryGetValue(key, out var cached))
+        //            return cached;
+        //    }
+
+        //    var keyProps = GetKeyProperties();
+        //    if (keyProps.Count != keyValues.Length)
+        //    {
+        //        log.Error($"{baseLogMessage}[{typeof(TClass)}.{nameof(Load)}] - Number of key values ({keyValues.Length}) does not match number of [Key] properties ({keyProps.Count}).");
+        //        throw new ArgumentException($"[{typeof(TClass)}.{nameof(Load)}] - Number of key values does not match number of [Key] properties.");
+        //    }
+
+        //    var whereClause = string.Join(" AND ", keyProps.Select(p => $"{GetColumnName(p)} = :{GetColumnName(p)}"));
+        //    var sql = $"SELECT * FROM {GetTableName()} WHERE {whereClause}";
+
+        //    using var cmd = connection.CreateCommand();
+        //    cmd.CommandText = sql;
+
+        //    var kvpDict = keyValues.ToDictionary(kv => kv.Key, kv => kv.Value);
+
+        //    foreach (var keyProp in keyProps)
+        //    {
+        //        var colName = GetColumnName(keyProp);
+        //        if (!kvpDict.Keys.Contains(colName, StringComparer.OrdinalIgnoreCase))
+        //        {
+        //            log.Error($"{baseLogMessage}[{typeof(TClass)}.{nameof(Load)}] - Key value for '{colName}' is missing in the provided key values.");
+        //            throw new ArgumentException($"[{typeof(TClass)}.{nameof(Load)}] - Key value for '{colName}' is missing in the provided key values.");
+        //        }
+
+        //        var param = cmd.CreateParameter();
+        //        param.ParameterName = ":" + colName;
+        //        param.Value = kvpDict[colName];
+        //        cmd.Parameters.Add(param);
+        //    }
+
+        //    using var reader = cmd.ExecuteReader();
+        //    if (!reader.Read())
+        //        return default!;
+
+        //    var loadedInstance = ReadData(reader);
+
+        //    if (HasTableTypeFlag(TableTypes.Cached))
+        //        _cache[loadedInstance.GetInstanceCompositeKey()] = loadedInstance;
+
+        //    return loadedInstance;
+        //}
+        public static TClass Load(IDbConnection connection, ILog log, string baseLogMessage, Expression<Func<TClass, bool>> whereExpression, bool ignoreCache = false)
         {
-            if (HasTableTypeFlag(TableTypes.Cached) && !ignoreCache)
+            if (whereExpression == null)
             {
-                _cacheLock.EnterReadLock();
-                try
-                {
-                    var cachedItem = _cachedEntities.ToList().FirstOrDefault(e => e.GetKeyValues().SequenceEqual(keyValues));
-                    if (cachedItem != null)
-                    {
-                        return cachedItem;
-                    }
-                }
-                finally
-                {
-                    _cacheLock.ExitReadLock();
-                }
+                log.Error($"{baseLogMessage}[{typeof(TClass)}.{nameof(Load)}] - whereExpression must be provided for Load().");
+                throw new ArgumentException($"[{typeof(TClass)}.{nameof(Load)}] - whereExpression must be provided.");
             }
 
             var keyProps = GetKeyProperties();
-            if (keyProps.Count != keyValues.Length)
+
+            // Tentativo di accesso diretto alla cache, solo se tutti i key sono presenti nella espressione
+            if (HasTableTypeFlag(TableTypes.Cached) && !ignoreCache)
             {
-                log.Error($"{baseLogMessage} - Number of key values ({keyValues.Length}) does not match number of [Key] properties ({keyProps.Count}).");
-                throw new ArgumentException("Number of key values does not match number of [Key] properties.");
+                // Ricerca LINQ in memoria
+                var compiledPredicate = whereExpression.Compile();
+                var cachedMatch = _cache.Values.FirstOrDefault(compiledPredicate);
+                if (cachedMatch != null)
+                    return cachedMatch;
             }
 
-            var whereClause = string.Join(" AND ", keyProps.Select(p => $"{GetColumnName(p)} = :{GetColumnName(p)}"));
+            // Query SQL se cache non trovata o bypassata
+            var builder = new OracleWhereBuilder();
+            var (whereClause, parameters) = builder.BuildWhere(whereExpression);
             var sql = $"SELECT * FROM {GetTableName()} WHERE {whereClause}";
 
             using var cmd = connection.CreateCommand();
             cmd.CommandText = sql;
-
-            var kvpDict = keyValues.ToDictionary(kv => kv.Key, kv => kv.Value);
-
-            foreach (var keyProp in keyProps)
-            {
-                var colName = GetColumnName(keyProp);
-                if (!kvpDict.Keys.Contains(colName, StringComparer.OrdinalIgnoreCase))
-                {
-                    log.Error($"{baseLogMessage} - Key value for '{colName}' is missing in the provided key values.");
-                    throw new ArgumentException($"Key value for '{colName}' is missing in the provided key values.");
-                }
-
-                var param = cmd.CreateParameter();
-                param.ParameterName = ":" + colName;
-                param.Value = kvpDict[colName];
-                cmd.Parameters.Add(param);
-            }
+            DbCommandHelper.AddParameters(cmd, parameters);
 
             using var reader = cmd.ExecuteReader();
             if (!reader.Read())
@@ -551,24 +524,184 @@ namespace DBDataLibrary.CRUD
             var loadedInstance = ReadData(reader);
 
             if (HasTableTypeFlag(TableTypes.Cached))
-            {
-                _cacheLock.EnterWriteLock();
-                try
-                {
-                    if (!_cachedEntities.Contains(loadedInstance))
-                    {
-                        _cachedEntities.Add(loadedInstance);
-                    }
-                }
-                finally
-                {
-                    _cacheLock.ExitWriteLock();
-                }
-            }
+                _cache[loadedInstance.GetInstanceCompositeKey()] = loadedInstance;
 
             return loadedInstance;
         }
 
+
+
+        public static IEnumerable<TClass> LoadAll(IDbConnection connection, ILog log, string baseLogMessage, bool reloadCache = false)
+        {
+            return LoadAll(connection, log, baseLogMessage, "", reloadCache);
+        }
+
+        /// <summary>
+        /// This method retrieves records of type TClass from the database.
+        /// </summary>
+        /// <param name="connection"></param>
+        /// <param name="log"></param>
+        /// <param name="baseLogMessage"></param>
+        /// <param name="whereExpression"></param>
+        /// <param name="reloadCache">In case of cached table, this will flush the cached data e load fresh data from DB</param>
+        /// <returns></returns>
+        public static IEnumerable<TClass> LoadAll(IDbConnection connection, ILog log, string baseLogMessage, Expression<Func<TClass, bool>>? whereExpression, bool reloadCache = false)
+        {
+            if (reloadCache)
+            {
+                LoadCache(connection, log, baseLogMessage);
+            }
+
+            if (HasTableTypeFlag(TableTypes.Cached) && _cache.Any())
+            {
+                var cachedList = _cache.Values;
+                if (whereExpression != null)
+                {
+                    var predicate = whereExpression.Compile();
+                    return cachedList.Where(predicate).ToList();
+                }
+                return cachedList.ToList();
+            }
+                        
+            using var cmd = connection.CreateCommand();
+            var sql = $"SELECT * FROM {GetTableName()} ";
+            if (whereExpression != null)
+            {
+                // ✅ Usa OracleWhereBuilder per creare clausola e parametri
+                var builder = new OracleWhereBuilder();
+                var (whereClause, parameters) = builder.BuildWhere(whereExpression);
+                // ✅ Aggiunta sicura dei parametri
+                DbCommandHelper.AddParameters(cmd, parameters);
+                sql += $" WHERE {whereClause} ";
+            }
+
+            cmd.CommandText = sql;
+
+            using var reader = cmd.ExecuteReader();
+            var resultList = new List<TClass>();
+            var type = typeof(TClass);
+            var props = type.GetProperties().ToDictionary(p => GetColumnName(p), p => p, StringComparer.OrdinalIgnoreCase);
+
+            while (reader.Read())
+            {
+                var loadedInstance = ReadData(reader);
+                resultList.Add(loadedInstance);
+
+                if (HasTableTypeFlag(TableTypes.Cached))
+                    _cache[loadedInstance.GetInstanceCompositeKey()] = loadedInstance;
+            }
+
+            return resultList;
+        }
+
+        /// <summary>
+        /// This method retrieves all records of type TClass from the database.
+        /// <para>Where clause is used only for non cached data</para>
+        /// <para>Use <see cref="LoadAll(IDbConnection, ILog, string, Expression{Func{TClass, bool}}, bool)"/> to filter cached data.</para>
+        /// </summary>
+        /// <param name="connection"></param>
+        /// <param name="whereFilter">
+        /// SQL WHERE clause used only if the table is not marked as Cached.
+        /// If the table is cached this filter is ignored. Use <see cref="LoadAll(IDbConnection, ILog, string, Expression{Func{TClass, bool}}, bool)"/> to filter cached data."/>
+        /// </param>
+        /// <param name="reloadCache">In case of cached table, this will flush the cached data e load fresh data from DB</param>
+        /// <returns></returns>
+        public static IEnumerable<TClass> LoadAll(IDbConnection connection, ILog log, string baseLogMessage, string whereFilter, bool reloadCache = false)
+        {
+            DateTime dtStart = DateTime.Now;
+            if (HasTableTypeFlag(TableTypes.Cached))
+            {
+                // If we are not reloading the cache and it is not empty, return the cached values
+                if (!reloadCache && _cache.Any())
+                {
+                    return _cache.Values.ToList();
+                }
+                // If we are reloading the cache or it is empty, clear the cache
+                if (reloadCache)
+                {
+                    _cache.Clear();
+                    whereFilter = string.Empty; // Clear the whereFilter since we are reloading the cache
+                    log.Debug($"{baseLogMessage} - Cache cleared for table '{typeof(TClass).Name}'.");
+                }
+            } 
+
+            var sql = $"SELECT * FROM {GetTableName()}";
+            if (!string.IsNullOrWhiteSpace(whereFilter))
+            {
+                sql += " WHERE " + whereFilter;
+            }
+
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = sql;
+
+            using var reader = cmd.ExecuteReader();
+            var resultList = new List<TClass>();
+            var type = typeof(TClass);
+            var props = type.GetProperties().ToDictionary(p => GetColumnName(p), p => p, StringComparer.OrdinalIgnoreCase);
+
+            while (reader.Read())
+            {
+                var loadedInstance = ReadData(reader);
+                resultList.Add(loadedInstance);
+
+                if (HasTableTypeFlag(TableTypes.Cached))
+                    _cache[loadedInstance.GetInstanceCompositeKey()] = loadedInstance;
+            }
+
+            if (HasTableTypeFlag(TableTypes.Cached))
+            {
+                log.Debug($"{baseLogMessage} - Loaded {resultList.Count} records into cache for table '{typeof(TClass).Name}' in {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms.");
+            }
+
+            return resultList;
+        }
+
+        /// <summary>
+        /// This method retrieves all records of type TClass from the database without using cache.
+        /// </summary>
+        /// <param name="connection"></param>
+        /// <param name="log"></param>
+        /// <param name="baseLogMessage"></param>
+        /// <param name="whereFilter"></param>
+        /// <returns></returns>
+        public static IEnumerable<TClass> LoadAll_NoCache(IDbConnection connection, ILog log, string baseLogMessage, string whereFilter = "")
+        {
+            var sql = $"SELECT * FROM {GetTableName()}";
+            if (!string.IsNullOrWhiteSpace(whereFilter))
+            {
+                sql += " WHERE " + whereFilter;
+            }
+
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = sql;
+
+            using var reader = cmd.ExecuteReader();
+            var resultList = new List<TClass>();
+            var type = typeof(TClass);
+            var props = type.GetProperties().ToDictionary(p => GetColumnName(p), p => p, StringComparer.OrdinalIgnoreCase);
+
+            while (reader.Read())
+            {
+                var loadedInstance = ReadData(reader);
+                resultList.Add(loadedInstance);
+            }
+
+            return resultList;
+        }
+
+        public static bool LoadCache(IDbConnection connection, ILog log, string baseLogMessage)
+        {
+            if (!HasTableTypeFlag(TableTypes.Cached))
+            {
+                log.Error($"{baseLogMessage} - Table '{typeof(TClass).Name}' is not marked as Cached. Cannot load cache.");
+                throw new InvalidOperationException($"Table '{typeof(TClass).Name}' is not marked as Cached. Cannot load cache.");
+            }
+            _cache.Clear();
+            log.Debug($"{baseLogMessage} - Cache cleared for table '{typeof(TClass).Name}'.");
+            // Reload the cache by fetching all records from the database
+            var allRecords = LoadAll(connection, log, baseLogMessage, "", true);
+            return allRecords.Any();
+        }
 
         private static TClass ReadData(IDataReader reader)
         {
@@ -597,82 +730,6 @@ namespace DBDataLibrary.CRUD
             // Clear the modified properties since we just loaded the data
             instance._modifiedProperties.Clear();
             return instance;
-        }
-
-        /// <summary>
-        /// This method retrieves all records of type TClass from the database.
-        /// </summary>
-        /// <param name="connection"></param>
-        /// <param name="whereFilter">In case of cached table, this filter will be ignored and you need to perform a <see cref="Where()"/></param> on the resuls of the method.
-        /// <param name="reloadCache">In case of cached table, this will flush the cached data e load fresh data from DB</param>
-        /// <returns></returns>
-        public static IEnumerable<TClass> LoadAll(IDbConnection connection, ILog log, string baseLogMessage, string whereFilter = "", bool reloadCache = false)
-        {
-            if (HasTableTypeFlag(TableTypes.Cached))
-            {
-                _cacheLock.EnterUpgradeableReadLock();
-                try
-                {
-                    if (reloadCache)
-                    {
-                        _cacheLock.EnterWriteLock();
-                        try
-                        {
-                            _cachedEntities.Clear();
-                        }
-                        finally
-                        {
-                            _cacheLock.ExitWriteLock();
-                        }
-                    }
-
-                    if (_cachedEntities.Any())
-                    {
-                        return _cachedEntities.ToList();
-                    }
-                }
-                finally
-                {
-                    _cacheLock.ExitUpgradeableReadLock();
-                }
-                // if cache is empty or cleared, proceed to reload from DB
-                whereFilter = string.Empty;
-            }
-
-            var sql = $"SELECT * FROM {GetTableName()}";
-            if (!string.IsNullOrWhiteSpace(whereFilter))
-            {
-                sql += " WHERE " + whereFilter;
-            }
-
-            using var cmd = connection.CreateCommand();
-            cmd.CommandText = sql;
-
-            using var reader = cmd.ExecuteReader();
-            var resultList = new List<TClass>();
-            var type = typeof(TClass);
-            var props = type.GetProperties().ToDictionary(p => GetColumnName(p), p => p, StringComparer.OrdinalIgnoreCase);
-
-            while (reader.Read())
-            {
-                var loadedInstance = ReadData(reader);
-                resultList.Add(loadedInstance);
-            }
-
-            if (HasTableTypeFlag(TableTypes.Cached))
-            {
-                _cacheLock.EnterWriteLock();
-                try
-                {
-                    _cachedEntities = resultList;
-                }
-                finally
-                {
-                    _cacheLock.ExitWriteLock();
-                }
-            }
-
-            return resultList;
         }
 
         public bool Equals(TClass? other)

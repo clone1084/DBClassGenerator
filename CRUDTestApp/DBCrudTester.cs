@@ -52,9 +52,10 @@ namespace CRUDTestApp
                 conn.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
                 LogInfo("Transaction started. All operations will be rolled back at the end.");
 
-                //ManualTest(conn, log, baseLogMessage);
+                ManualTest(conn, log, baseLogMessage);
+                ManualTest2(conn, log, baseLogMessage);
 
-                AutomaticTestOfAllClasses(conn, log, baseLogMessage);
+                //AutomaticTestOfAllClasses(conn, log, baseLogMessage);
 
                 LogInfo();
                 LogInfo("All tests completed.");
@@ -97,7 +98,7 @@ namespace CRUDTestApp
             //LogWarning($"Update took {(DateTime.Now - start).TotalMilliseconds:N2} ms");
 
             //start = DateTime.Now;
-            MfcConvMovements mov2 = MfcConvMovements.Load(conn, log, baseLogMessage, new KeyValuePair<string, object>("OID", mov.Oid));
+            MfcConvMovements mov2 = MfcConvMovements.Load(conn, log, baseLogMessage, x => x.Oid == mov.Oid);
             //LogWarning($"ManualLoad took {(DateTime.Now - start).TotalMilliseconds:N2} ms");
             LogResult(mov2 != null, "    ManualLoad ManToCom");
             LogResult(mov2 != null && mov2.Oid == mov.Oid, "ManualLoad have the same OID of ManualInsert");
@@ -110,6 +111,33 @@ namespace CRUDTestApp
             LogInfo($"Loaded {allMtc?.Count()} MfcConvManToCom records from DB");
 
             LogResult(mov.Delete(conn, log, baseLogMessage), "    ManualDelete ManToCom");
+        }
+
+        private void ManualTest2(Oracle.ManagedDataAccess.Client.OracleConnection conn, log4net.ILog log, string baseLogMessage)
+        {
+            MfcConvRouting.LoadCache(conn, log, baseLogMessage);
+
+            {
+                var dtStart = DateTime.Now;
+                var dbRouting = MfcConvRouting.LoadAll(conn, log, baseLogMessage, true);
+                LogInfo($"DB LoadAll [{dbRouting.Count()}] took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
+            }
+            {
+                var dtStart = DateTime.Now;
+                MfcConvRouting dbRouting = MfcConvRouting.Load(conn, log, baseLogMessage, x => x.CdItemFrom == "1001", true);
+                LogInfo($"DB Load took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
+            }
+
+            {
+                var dtStart = DateTime.Now;
+                var dbRouting = MfcConvRouting.LoadAll(conn, log, baseLogMessage);
+                LogInfo($"Cache LoadAll [{dbRouting.Count()}] took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
+            }
+            {
+                var dtStart = DateTime.Now;
+                MfcConvRouting cacheRouting = MfcConvRouting.Load(conn, log, baseLogMessage, x => x.CdItemFrom == "1001");
+                LogInfo($"Cache Load took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
+            }
         }
 
         private void AutomaticTestOfAllClasses(Oracle.ManagedDataAccess.Client.OracleConnection conn, log4net.ILog log, string baseLogMessage)
@@ -250,11 +278,13 @@ namespace CRUDTestApp
             try
             {
                 var crudBaseGeneric = typeof(ACrudBase<>).MakeGenericType(type); // this works because ACrudBase<T> is open
-                var method = crudBaseGeneric.GetMethod("LoadAll", BindingFlags.Public | BindingFlags.Static);
+
+                //var method = crudBaseGeneric.GetMethod("LoadAll", BindingFlags.Public | BindingFlags.Static);
+                var method = crudBaseGeneric.GetMethods(BindingFlags.Public | BindingFlags.Static).FirstOrDefault(x => x.Name == "LoadAll");
                 if (method != null)
                 {
                     DateTime dtStart = DateTime.Now;
-                    var result = method.Invoke(null, new object[] { conn, log, baseLogMessage, "", false }); // second param is whereFilter, third parameter il cache loading
+                    var result = method.Invoke(null, new object[] { conn, log, baseLogMessage, false }); // second param is whereFilter, third parameter il cache loading
                     var loadedList = ((IEnumerable<object>)result)?.ToList();
                     LogResult(loadedList?.Count ?? 0, "    Load");
                     LogInfo($"    Load took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
@@ -271,14 +301,14 @@ namespace CRUDTestApp
                     {
                         // Provo un accesso alla cache
                         DateTime dtStart = DateTime.Now;
-                        var result = method.Invoke(null, new object[] { conn, log, baseLogMessage, "", false }); // second param is whereFilter, third parameter il cache loading
+                        var result = method.Invoke(null, new object[] { conn, log, baseLogMessage, false }); // second param is whereFilter, third parameter il cache loading
                         var loadedList = ((IEnumerable<object>)result)?.ToList();
                         LogResult(loadedList?.Count ?? 0, "    CacheLoad");
                         LogInfo($"    CacheLoad took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
 
                         // Provo un reload della cache
                         dtStart = DateTime.Now;
-                        result = method.Invoke(null, new object[] { conn, log, baseLogMessage, "", true }); // second param is whereFilter, third parameter il cache loading
+                        result = method.Invoke(null, new object[] { conn, log, baseLogMessage, true }); // second param is whereFilter, third parameter il cache loading
                         loadedList = ((IEnumerable<object>)result)?.ToList();
                         LogResult(loadedList?.Count ?? 0, "    CacheReLoad");
                         LogInfo($"    CacheReLoad took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
@@ -289,7 +319,7 @@ namespace CRUDTestApp
                         //{
                         //    // Reload della cache
                         //    DateTime dtStart = DateTime.Now;
-                        //    var result = method.Invoke(null, new object[] { conn, log, baseLogMessage, "", true });
+                        //    var result = method.Invoke(null, new object[] { conn, log, baseLogMessage, true });
                         //    var loadedList = ((IEnumerable<object>)result)?.ToList();
                         //    LogResult(loadedList?.Count ?? 0, "    Task CacheReLoad");
                         //    LogInfo($"    CacheReLoad took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
@@ -299,7 +329,7 @@ namespace CRUDTestApp
                         //{
                         //    // Accesso ai dati (senza reload)
                         //    DateTime dtStart = DateTime.Now;
-                        //    var result = method.Invoke(null, new object[] { conn, log, baseLogMessage, "", false });
+                        //    var result = method.Invoke(null, new object[] { conn, log, baseLogMessage, false });
                         //    var loadedList = ((IEnumerable<object>)result)?.ToList();
                         //    LogResult(loadedList?.Count ?? 0, "    Task CacheAccess");
                         //    LogInfo($"    CacheLoad took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
