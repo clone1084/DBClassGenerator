@@ -52,10 +52,10 @@ namespace CRUDTestApp
                 conn.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
                 LogInfo("Transaction started. All operations will be rolled back at the end.");
 
-                ManualTest(conn, log, baseLogMessage);
-                ManualTest2(conn, log, baseLogMessage);
+                //ManualTest(conn, log, baseLogMessage);
+                //ManualTest2(conn, log, baseLogMessage);
 
-                //AutomaticTestOfAllClasses(conn, log, baseLogMessage);
+                AutomaticTestOfAllClasses(conn, log, baseLogMessage);
 
                 LogInfo();
                 LogInfo("All tests completed.");
@@ -98,14 +98,14 @@ namespace CRUDTestApp
             //LogWarning($"Update took {(DateTime.Now - start).TotalMilliseconds:N2} ms");
 
             //start = DateTime.Now;
-            MfcConvMovements mov2 = MfcConvMovements.Load(conn, log, baseLogMessage, x => x.Oid == mov.Oid);
+            MfcConvMovements mov2 = MfcConvMovements.Get(conn, log, baseLogMessage, x => x.Oid == mov.Oid);
             //LogWarning($"ManualLoad took {(DateTime.Now - start).TotalMilliseconds:N2} ms");
             LogResult(mov2 != null, "    ManualLoad ManToCom");
             LogResult(mov2 != null && mov2.Oid == mov.Oid, "ManualLoad have the same OID of ManualInsert");
             LogInfo($"DB Loaded actual position: {mov2.ActualPar1} DtUpdate: {mov2.DtUpdate}");
 
             //start = DateTime.Now;
-            var allMtc = MfcConvMovements.LoadAll(conn, log, baseLogMessage);
+            var allMtc = MfcConvMovements.GetMany(conn, log, baseLogMessage);
             //LogWarning($"ManualLoadAll took {(DateTime.Now - start).TotalMilliseconds:N2} ms");
             LogResult(allMtc?.Count() != 0, "    ManualLoadAll MfcConvMovements");
             LogInfo($"Loaded {allMtc?.Count()} MfcConvManToCom records from DB");
@@ -119,69 +119,87 @@ namespace CRUDTestApp
 
             int i = 0;
             List<TimeSpan> dbLoadAll = new();
-            List<TimeSpan> dbLoadAll1001 = new();
+            List<TimeSpan> dbLoadAll1001Linq = new();
+            List<TimeSpan> dbLoadAll1001Sql = new();
             List<TimeSpan> dbLoad1001 = new();
             List<TimeSpan> cacheLoadAll = new();
             List<TimeSpan> cacheLoadAll1001 = new();
             List<TimeSpan> cacheLoad1001 = new();
 
-            while (i < 100)
+            var pars = new Dictionary<string, object?>()
+            {
+                [":cdItemFrom"] = "1001",
+            };
+            int maxCount = 10;
+            LogInfo($"Looping {maxCount} for extended test...");
+            while (i < maxCount)
             {
                 i++;
 
+                // DB
                 {
                     var dtStart = DateTime.Now;
-                    var dbRouting = MfcConvRouting.LoadAll(conn, log, baseLogMessage, true);
+                    var dbRouting = MfcConvRouting.GetMany(conn, log, baseLogMessage, ignoreCache: true);
                     var ts = (DateTime.Now - dtStart);
                     dbLoadAll.Add(ts);
-                    LogInfo($"DB LoadAll [{dbRouting.Count()}] took {ts.TotalMilliseconds:N2} ms");
+                    //LogInfo($"DB GetMany [{dbRouting.Count()}] took {ts.TotalMilliseconds:N2} ms");
                 }
                 {
                     var dtStart = DateTime.Now;
-                    var dbRouting = MfcConvRouting.LoadAll(conn, log, baseLogMessage, x => x.CdItemFrom == "1001", true);
+                    var dbRouting = MfcConvRouting.GetMany(conn, log, baseLogMessage, x => x.CdItemFrom == "1001", ignoreCache: true);
                     var ts = (DateTime.Now - dtStart);
-                    dbLoadAll1001.Add(ts);
-                    LogInfo($"DB LoadAll 1001 [{dbRouting.Count()}] took {ts.TotalMilliseconds:N2} ms");
+                    dbLoadAll1001Linq.Add(ts);
+                    //LogInfo($"DB GetMany 1001 LINQ [{dbRouting.Count()}] took {ts.TotalMilliseconds:N2} ms");
                 }
                 {
                     var dtStart = DateTime.Now;
-                    MfcConvRouting dbRouting = MfcConvRouting.Load(conn, log, baseLogMessage, x => x.CdItemFrom == "1001", true);
+                    var dbRouting = MfcConvRouting.GetMany(conn, log, baseLogMessage, "CD_ITEM_FROM = :cdItemFrom", pars );
+                    //var dbRouting = MfcConvRouting.GetMany(conn, log, baseLogMessage, "CD_ITEM_FROM = 1001");
+                    var ts = (DateTime.Now - dtStart);
+                    dbLoadAll1001Sql.Add(ts);
+                    //LogInfo($"DB GetMany 1001 SQL [{dbRouting.Count()}] took {ts.TotalMilliseconds:N2} ms");
+                }
+                {
+                    var dtStart = DateTime.Now;
+                    MfcConvRouting dbRouting = MfcConvRouting.Get(conn, log, baseLogMessage, x => x.CdItemFrom == "1001", true);
                     var ts = (DateTime.Now - dtStart);
                     dbLoad1001.Add(ts);
-                    LogInfo($"DB Load 1001 took {ts.TotalMilliseconds:N2} ms");
+                    //LogInfo($"DB Get 1001 took {ts.TotalMilliseconds:N2} ms");
                 }
 
+                // Cache
                 {
                     var dtStart = DateTime.Now;
-                    var dbRouting = MfcConvRouting.LoadAll(conn, log, baseLogMessage);
+                    var cacheRouting = MfcConvRouting.GetMany(conn, log, baseLogMessage); 
                     var ts = (DateTime.Now - dtStart);
                     cacheLoadAll.Add(ts);
-                    LogInfo($"Cache LoadAll [{dbRouting.Count()}] took {ts.TotalMilliseconds:N2} ms");
+                    //LogInfo($"Cache GetMany [{dbRouting.Count()}] took {ts.TotalMilliseconds:N2} ms");
                 }
                 {
                     var dtStart = DateTime.Now;
-                    var dbRouting = MfcConvRouting.LoadAll(conn, log, baseLogMessage, x => x.CdItemFrom == "1001");
+                    var cacheRouting = MfcConvRouting.GetMany(conn, log, baseLogMessage, x => x.CdItemFrom == "1001");
                     var ts = (DateTime.Now - dtStart);
                     cacheLoadAll1001.Add(ts);
-                    LogInfo($"Cache LoadAll 1001 [{dbRouting.Count()}] took {ts.TotalMilliseconds:N2} ms");
+                    //LogInfo($"Cache GetMany 1001 [{dbRouting.Count()}] took {ts.TotalMilliseconds:N2} ms");
                 }
                 {
                     var dtStart = DateTime.Now;
-                    MfcConvRouting cacheRouting = MfcConvRouting.Load(conn, log, baseLogMessage, x => x.CdItemFrom == "1001");
+                    MfcConvRouting cacheRouting = MfcConvRouting.Get(conn, log, baseLogMessage, x => x.CdItemFrom == "1001");
                     var ts = (DateTime.Now - dtStart);
                     cacheLoad1001.Add(ts);
-                    LogInfo($"Cache Load 1001 took {ts.TotalMilliseconds:N2} ms");
+                    //LogInfo($"Cache Get 1001 took {ts.TotalMilliseconds:N2} ms");
                 }
             }
 
-            LogInfo($"Summary of Load Tests:");
-            LogInfo($"Source            | Min     | Max     | Avg     ");
-            LogInfo($"DB LoadAll        | {dbLoadAll.Min().TotalMilliseconds,7:N2} | {dbLoadAll.Max().TotalMilliseconds,7:N2} | {dbLoadAll.Average(x => x.TotalMilliseconds),7:N2}");
-            LogInfo($"DB LoadAll 1001   | {dbLoadAll1001.Min().TotalMilliseconds,7:N2} | {dbLoadAll1001.Max().TotalMilliseconds,7:N2} | {dbLoadAll1001.Average(x => x.TotalMilliseconds),7:N2}");
-            LogInfo($"DB Load 1001      | {dbLoad1001.Min().TotalMilliseconds,7:N2} | {dbLoad1001.Max().TotalMilliseconds,7:N2} | {dbLoad1001.Average(x => x.TotalMilliseconds),7:N2}");
-            LogInfo($"Cache LoadAll     | {cacheLoadAll.Min().TotalMilliseconds,7:N2} | {cacheLoadAll.Max().TotalMilliseconds,7:N2} | {cacheLoadAll.Average(x => x.TotalMilliseconds),7:N2}");
-            LogInfo($"Cache LoadAll 1001| {cacheLoadAll1001.Min().TotalMilliseconds,7:N2} | {cacheLoadAll1001.Max().TotalMilliseconds,7:N2} | {cacheLoadAll1001.Average(x => x.TotalMilliseconds),7:N2}");
-            LogInfo($"Cache Load 1001   | {cacheLoad1001.Min().TotalMilliseconds,7:N2} | {cacheLoad1001.Max().TotalMilliseconds,7:N2} | {cacheLoad1001.Average(x => x.TotalMilliseconds),7:N2}");
+            LogInfo($"Summary of Get Tests:");
+            LogInfo($"Source            | Min        | Max        | Avg        ");
+            LogInfo($"DB GetMany        | {dbLoadAll.Min().TotalMilliseconds,7:N2} ms | {dbLoadAll.Max().TotalMilliseconds,7:N2} ms | {dbLoadAll.Average(x => x.TotalMilliseconds),7:N2} ms");
+            LogInfo($"DB GetMany 1001   | {dbLoadAll1001Linq.Min().TotalMilliseconds,7:N2} ms | {dbLoadAll1001Linq.Max().TotalMilliseconds,7:N2} ms | {dbLoadAll1001Linq.Average(x => x.TotalMilliseconds),7:N2} ms");
+            LogInfo($"DB GetMany 1001SQL| {dbLoadAll1001Sql.Min().TotalMilliseconds,7:N2} ms | {dbLoadAll1001Sql.Max().TotalMilliseconds,7:N2} ms | {dbLoadAll1001Sql.Average(x => x.TotalMilliseconds),7:N2} ms");
+            LogInfo($"DB Get 1001       | {dbLoad1001.Min().TotalMilliseconds,7:N2} ms | {dbLoad1001.Max().TotalMilliseconds,7:N2} ms | {dbLoad1001.Average(x => x.TotalMilliseconds),7:N2} ms");
+            LogInfo($"Cache GetMany     | {cacheLoadAll.Min().TotalMilliseconds,7:N2} ms | {cacheLoadAll.Max().TotalMilliseconds,7:N2} ms | {cacheLoadAll.Average(x => x.TotalMilliseconds),7:N2} ms");
+            LogInfo($"Cache GetMany 1001| {cacheLoadAll1001.Min().TotalMilliseconds,7:N2} ms | {cacheLoadAll1001.Max().TotalMilliseconds,7:N2} ms | {cacheLoadAll1001.Average(x => x.TotalMilliseconds),7:N2} ms");
+            LogInfo($"Cache Get 1001    | {cacheLoad1001.Min().TotalMilliseconds,7:N2} ms | {cacheLoad1001.Max().TotalMilliseconds,7:N2} ms | {cacheLoad1001.Average(x => x.TotalMilliseconds),7:N2} ms");
         }
 
         private void AutomaticTestOfAllClasses(Oracle.ManagedDataAccess.Client.OracleConnection conn, log4net.ILog log, string baseLogMessage)
@@ -323,19 +341,20 @@ namespace CRUDTestApp
             {
                 var crudBaseGeneric = typeof(ACrudBase<>).MakeGenericType(type); // this works because ACrudBase<T> is open
 
-                //var method = crudBaseGeneric.GetMethod("LoadAll", BindingFlags.Public | BindingFlags.Static);
-                var method = crudBaseGeneric.GetMethods(BindingFlags.Public | BindingFlags.Static).FirstOrDefault(x => x.Name == "LoadAll");
+                //var method = crudBaseGeneric.GetMethod("GetMany", BindingFlags.Public | BindingFlags.Static);
+                var methods = crudBaseGeneric.GetMethods(BindingFlags.Public | BindingFlags.Static);
+                var method = methods.FirstOrDefault(x => x.Name == "GetMany");
                 if (method != null)
                 {
                     DateTime dtStart = DateTime.Now;
-                    var result = method.Invoke(null, new object[] { conn, log, baseLogMessage, false }); // second param is whereFilter, third parameter il cache loading
+                    var result = method.Invoke(null, new object[] { conn, log, baseLogMessage }); // second param is whereFilter, third parameter il cache loading
                     var loadedList = ((IEnumerable<object>)result)?.ToList();
-                    LogResult(loadedList?.Count ?? 0, "    Load");
-                    LogInfo($"    Load took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
+                    LogResult(loadedList?.Count ?? 0, "    Get");
+                    LogInfo($"    Get took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
                 }
                 else
                 {
-                    LogWarning($"    LoadAll not found for type {type.Name}");
+                    LogWarning($"    GetMany not found for type {type.Name}");
                 }
 
                 // CACHED Table test
@@ -345,48 +364,25 @@ namespace CRUDTestApp
                     {
                         // Provo un accesso alla cache
                         DateTime dtStart = DateTime.Now;
-                        var result = method.Invoke(null, new object[] { conn, log, baseLogMessage, false }); // second param is whereFilter, third parameter il cache loading
+                        var result = method.Invoke(null, new object[] { conn, log, baseLogMessage }); // carico dalla cache
                         var loadedList = ((IEnumerable<object>)result)?.ToList();
                         LogResult(loadedList?.Count ?? 0, "    CacheLoad");
                         LogInfo($"    CacheLoad took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
 
                         // Provo un reload della cache
+                        var loadCacheMethod = methods.FirstOrDefault(x => x.Name == "LoadCache");
                         dtStart = DateTime.Now;
-                        result = method.Invoke(null, new object[] { conn, log, baseLogMessage, true }); // second param is whereFilter, third parameter il cache loading
+                        result = loadCacheMethod.Invoke(null, new object[] { conn, log, baseLogMessage}); // ricarico la cache
+                        result = method.Invoke(null, new object[] { conn, log, baseLogMessage }); // carico dalla cache
                         loadedList = ((IEnumerable<object>)result)?.ToList();
                         LogResult(loadedList?.Count ?? 0, "    CacheReLoad");
                         LogInfo($"    CacheReLoad took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
-
-                        //// Provo un accesso concorrente alla cache
-                        //LogInfo("    Avvio test di accesso concorrente alla cache...");
-                        //var taskReload = Task.Run(() =>
-                        //{
-                        //    // Reload della cache
-                        //    DateTime dtStart = DateTime.Now;
-                        //    var result = method.Invoke(null, new object[] { conn, log, baseLogMessage, true });
-                        //    var loadedList = ((IEnumerable<object>)result)?.ToList();
-                        //    LogResult(loadedList?.Count ?? 0, "    Task CacheReLoad");
-                        //    LogInfo($"    CacheReLoad took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
-                        //});
-
-                        //var taskAccess = Task.Run(() =>
-                        //{
-                        //    // Accesso ai dati (senza reload)
-                        //    DateTime dtStart = DateTime.Now;
-                        //    var result = method.Invoke(null, new object[] { conn, log, baseLogMessage, false });
-                        //    var loadedList = ((IEnumerable<object>)result)?.ToList();
-                        //    LogResult(loadedList?.Count ?? 0, "    Task CacheAccess");
-                        //    LogInfo($"    CacheLoad took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
-                        //});
-
-                        //Task.WhenAll(taskReload, taskAccess).Wait();
-                        //LogInfo("    Test di accesso concorrente completato.");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Log2Colors($"    Load", ex.Message);
+                Log2Colors($"    Get", ex.Message);
             }
         }
 

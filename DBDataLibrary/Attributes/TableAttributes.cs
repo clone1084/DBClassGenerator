@@ -61,7 +61,7 @@ namespace DBDataLibrary.Attributes
         CRUD = Insertable | Updatable | Deletable, // 14
 
         /// <summary>
-        /// 128. This table is cached, meaning its data is stored in memory for faster access. This impact Load and LoadAll methods.
+        /// 128. This table is cached, meaning its data is stored in memory for faster access. This impact Get and GetMany methods.
         /// <para>May be used in conjunction with ReadOnly to indicate that the cached data should not be modified.</para>
         /// <para>May also be used with Insertable, Updatable, and Deletable to indicate that the cached data can be modified. 
         /// This will cause the cache to be updated accordingly.</para>

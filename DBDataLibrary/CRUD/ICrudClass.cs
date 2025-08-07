@@ -16,7 +16,7 @@ namespace DBDataLibrary.CRUD
     public interface ICrudClass<TClass>: ICrudClass
         where TClass : ICrudClass<TClass>, new()
     {
-        // LoadAll is a static method that retrieves all records of type TClass from the database.
-        //IEnumerable<TClass> LoadAll(IDbConnection connection, string whereFilter = "");
+        // GetMany is a static method that retrieves all records of type TClass from the database.
+        //IEnumerable<TClass> GetMany(IDbConnection connection, string whereFilter = "");
     }
 }
