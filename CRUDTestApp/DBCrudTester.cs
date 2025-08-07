@@ -1,6 +1,7 @@
 ﻿using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
 using DBDataLibrary.Tables;
+using log4net;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -50,15 +51,17 @@ namespace CRUDTestApp
             try
             {
                 conn.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
+                log.Info($"{baseLogMessage} Transaction started.");
                 LogInfo("Transaction started. All operations will be rolled back at the end.");
 
-                //ManualTest(conn, log, baseLogMessage);
-                //ManualTest2(conn, log, baseLogMessage);
+                ManualTest(conn, log, baseLogMessage);
+                ManualTest2(conn, log, baseLogMessage);
 
-                AutomaticTestOfAllClasses(conn, log, baseLogMessage);
+                //AutomaticTestOfAllClasses(conn, log, baseLogMessage);
 
                 LogInfo();
                 LogInfo("All tests completed.");
+                log.Info("All tests completed.");
             }
             finally
             {
