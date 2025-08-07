@@ -117,27 +117,71 @@ namespace CRUDTestApp
         {
             MfcConvRouting.LoadCache(conn, log, baseLogMessage);
 
+            int i = 0;
+            List<TimeSpan> dbLoadAll = new();
+            List<TimeSpan> dbLoadAll1001 = new();
+            List<TimeSpan> dbLoad1001 = new();
+            List<TimeSpan> cacheLoadAll = new();
+            List<TimeSpan> cacheLoadAll1001 = new();
+            List<TimeSpan> cacheLoad1001 = new();
+
+            while (i < 100)
             {
-                var dtStart = DateTime.Now;
-                var dbRouting = MfcConvRouting.LoadAll(conn, log, baseLogMessage, true);
-                LogInfo($"DB LoadAll [{dbRouting.Count()}] took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
-            }
-            {
-                var dtStart = DateTime.Now;
-                MfcConvRouting dbRouting = MfcConvRouting.Load(conn, log, baseLogMessage, x => x.CdItemFrom == "1001", true);
-                LogInfo($"DB Load took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
+                i++;
+
+                {
+                    var dtStart = DateTime.Now;
+                    var dbRouting = MfcConvRouting.LoadAll(conn, log, baseLogMessage, true);
+                    var ts = (DateTime.Now - dtStart);
+                    dbLoadAll.Add(ts);
+                    LogInfo($"DB LoadAll [{dbRouting.Count()}] took {ts.TotalMilliseconds:N2} ms");
+                }
+                {
+                    var dtStart = DateTime.Now;
+                    var dbRouting = MfcConvRouting.LoadAll(conn, log, baseLogMessage, x => x.CdItemFrom == "1001", true);
+                    var ts = (DateTime.Now - dtStart);
+                    dbLoadAll1001.Add(ts);
+                    LogInfo($"DB LoadAll 1001 [{dbRouting.Count()}] took {ts.TotalMilliseconds:N2} ms");
+                }
+                {
+                    var dtStart = DateTime.Now;
+                    MfcConvRouting dbRouting = MfcConvRouting.Load(conn, log, baseLogMessage, x => x.CdItemFrom == "1001", true);
+                    var ts = (DateTime.Now - dtStart);
+                    dbLoad1001.Add(ts);
+                    LogInfo($"DB Load 1001 took {ts.TotalMilliseconds:N2} ms");
+                }
+
+                {
+                    var dtStart = DateTime.Now;
+                    var dbRouting = MfcConvRouting.LoadAll(conn, log, baseLogMessage);
+                    var ts = (DateTime.Now - dtStart);
+                    cacheLoadAll.Add(ts);
+                    LogInfo($"Cache LoadAll [{dbRouting.Count()}] took {ts.TotalMilliseconds:N2} ms");
+                }
+                {
+                    var dtStart = DateTime.Now;
+                    var dbRouting = MfcConvRouting.LoadAll(conn, log, baseLogMessage, x => x.CdItemFrom == "1001");
+                    var ts = (DateTime.Now - dtStart);
+                    cacheLoadAll1001.Add(ts);
+                    LogInfo($"Cache LoadAll 1001 [{dbRouting.Count()}] took {ts.TotalMilliseconds:N2} ms");
+                }
+                {
+                    var dtStart = DateTime.Now;
+                    MfcConvRouting cacheRouting = MfcConvRouting.Load(conn, log, baseLogMessage, x => x.CdItemFrom == "1001");
+                    var ts = (DateTime.Now - dtStart);
+                    cacheLoad1001.Add(ts);
+                    LogInfo($"Cache Load 1001 took {ts.TotalMilliseconds:N2} ms");
+                }
             }
 
-            {
-                var dtStart = DateTime.Now;
-                var dbRouting = MfcConvRouting.LoadAll(conn, log, baseLogMessage);
-                LogInfo($"Cache LoadAll [{dbRouting.Count()}] took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
-            }
-            {
-                var dtStart = DateTime.Now;
-                MfcConvRouting cacheRouting = MfcConvRouting.Load(conn, log, baseLogMessage, x => x.CdItemFrom == "1001");
-                LogInfo($"Cache Load took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
-            }
+            LogInfo($"Summary of Load Tests:");
+            LogInfo($"Source            | Min     | Max     | Avg     ");
+            LogInfo($"DB LoadAll        | {dbLoadAll.Min().TotalMilliseconds,7:N2} | {dbLoadAll.Max().TotalMilliseconds,7:N2} | {dbLoadAll.Average(x => x.TotalMilliseconds),7:N2}");
+            LogInfo($"DB LoadAll 1001   | {dbLoadAll1001.Min().TotalMilliseconds,7:N2} | {dbLoadAll1001.Max().TotalMilliseconds,7:N2} | {dbLoadAll1001.Average(x => x.TotalMilliseconds),7:N2}");
+            LogInfo($"DB Load 1001      | {dbLoad1001.Min().TotalMilliseconds,7:N2} | {dbLoad1001.Max().TotalMilliseconds,7:N2} | {dbLoad1001.Average(x => x.TotalMilliseconds),7:N2}");
+            LogInfo($"Cache LoadAll     | {cacheLoadAll.Min().TotalMilliseconds,7:N2} | {cacheLoadAll.Max().TotalMilliseconds,7:N2} | {cacheLoadAll.Average(x => x.TotalMilliseconds),7:N2}");
+            LogInfo($"Cache LoadAll 1001| {cacheLoadAll1001.Min().TotalMilliseconds,7:N2} | {cacheLoadAll1001.Max().TotalMilliseconds,7:N2} | {cacheLoadAll1001.Average(x => x.TotalMilliseconds),7:N2}");
+            LogInfo($"Cache Load 1001   | {cacheLoad1001.Min().TotalMilliseconds,7:N2} | {cacheLoad1001.Max().TotalMilliseconds,7:N2} | {cacheLoad1001.Average(x => x.TotalMilliseconds),7:N2}");
         }
 
         private void AutomaticTestOfAllClasses(Oracle.ManagedDataAccess.Client.OracleConnection conn, log4net.ILog log, string baseLogMessage)

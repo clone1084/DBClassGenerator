@@ -19,13 +19,37 @@ namespace DBDataLibrary.CRUD
         
         protected HashSet<string> _modifiedProperties = new();
 
-        //protected static IList<TClass> _cachedEntities = new List<TClass>();
+        protected static readonly ConcurrentDictionary<string, TClass> _cache = new();
+        protected static readonly ConcurrentDictionary<string, ConcurrentDictionary<object, TClass>> _indexes = new();
 
-        //protected static readonly ReaderWriterLockSlim _cacheLock = new();
-
-        protected static ConcurrentDictionary<string, TClass> _cache = new();
 
         protected ACrudBase() { }
+
+        protected static void AddToCache(TClass instance)
+        {
+            var compositeKey = instance.GetInstanceCompositeKey();
+            _cache[compositeKey] = instance;
+
+            foreach (var keyProp in GetKeyProperties())
+            {
+                var indexName = keyProp.Name;
+                var keyValue = keyProp.GetValue(instance);
+                if (keyValue == null) continue;
+
+                var index = _indexes.GetOrAdd(indexName, _ => new ConcurrentDictionary<object, TClass>());
+                index[keyValue] = instance;
+            }
+        }
+
+        protected static TClass? TryFromIndex(string propertyName, object keyValue)
+        {
+            if (_indexes.TryGetValue(propertyName, out var index) && index.TryGetValue(keyValue, out var result))
+            {
+                return result;
+            }
+            return null;
+
+        }
 
         protected void AddModifiedProperty(string propertyName)
         {
@@ -490,30 +514,29 @@ namespace DBDataLibrary.CRUD
         //}
         public static TClass Load(IDbConnection connection, ILog log, string baseLogMessage, Expression<Func<TClass, bool>> whereExpression, bool ignoreCache = false)
         {
-            if (whereExpression == null)
-            {
-                log.Error($"{baseLogMessage}[{typeof(TClass)}.{nameof(Load)}] - whereExpression must be provided for Load().");
-                throw new ArgumentException($"[{typeof(TClass)}.{nameof(Load)}] - whereExpression must be provided.");
-            }
-
-            var keyProps = GetKeyProperties();
-
-            // Tentativo di accesso diretto alla cache, solo se tutti i key sono presenti nella espressione
             if (HasTableTypeFlag(TableTypes.Cached) && !ignoreCache)
             {
-                // Ricerca LINQ in memoria
-                var compiledPredicate = whereExpression.Compile();
-                var cachedMatch = _cache.Values.FirstOrDefault(compiledPredicate);
-                if (cachedMatch != null)
-                    return cachedMatch;
+                if (CacheKeyExtractor.TryExtractSingleKey(whereExpression, out var keyName, out var keyValue))
+                {
+                    var fromIndex = TryFromIndex(keyName, keyValue);
+                    if (fromIndex != null)
+                        return fromIndex;
+                }
+                else if (CacheKeyExtractor.TryExtractKeyValues(whereExpression, GetKeyProperties(), out var keyDict))
+                {
+                    var cacheKey = GetCompositeKey(keyDict);
+                    if (_cache.TryGetValue(cacheKey, out var cached))
+                        return cached;
+                }
             }
 
-            // Query SQL se cache non trovata o bypassata
+            using var cmd = connection.CreateCommand();
+
             var builder = new OracleWhereBuilder();
             var (whereClause, parameters) = builder.BuildWhere(whereExpression);
+            // ✅ Aggiunta sicura dei parametri
             var sql = $"SELECT * FROM {GetTableName()} WHERE {whereClause}";
 
-            using var cmd = connection.CreateCommand();
             cmd.CommandText = sql;
             DbCommandHelper.AddParameters(cmd, parameters);
 
@@ -522,13 +545,11 @@ namespace DBDataLibrary.CRUD
                 return default!;
 
             var loadedInstance = ReadData(reader);
-
             if (HasTableTypeFlag(TableTypes.Cached))
-                _cache[loadedInstance.GetInstanceCompositeKey()] = loadedInstance;
+                AddToCache(loadedInstance);
 
             return loadedInstance;
         }
-
 
 
         public static IEnumerable<TClass> LoadAll(IDbConnection connection, ILog log, string baseLogMessage, bool reloadCache = false)
@@ -588,7 +609,9 @@ namespace DBDataLibrary.CRUD
                 resultList.Add(loadedInstance);
 
                 if (HasTableTypeFlag(TableTypes.Cached))
-                    _cache[loadedInstance.GetInstanceCompositeKey()] = loadedInstance;
+                {
+                    AddToCache(loadedInstance);
+                }
             }
 
             return resultList;
@@ -645,7 +668,9 @@ namespace DBDataLibrary.CRUD
                 resultList.Add(loadedInstance);
 
                 if (HasTableTypeFlag(TableTypes.Cached))
-                    _cache[loadedInstance.GetInstanceCompositeKey()] = loadedInstance;
+                {
+                    AddToCache(loadedInstance);
+                }
             }
 
             if (HasTableTypeFlag(TableTypes.Cached))

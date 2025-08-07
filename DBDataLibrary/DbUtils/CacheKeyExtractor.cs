@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Formats.Asn1;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -10,19 +11,68 @@ namespace DBDataLibrary.DbUtils
 {
     public static class CacheKeyExtractor
     {
-        public static bool TryExtractKeyValues<T>(
-            Expression<Func<T, bool>> expression,
-            IReadOnlyList<PropertyInfo> keyProperties,
-            out Dictionary<string, object?> keyValues)
+        public static bool TryExtractKeyValues<TClass>(Expression<Func<TClass, bool>> expr, List<PropertyInfo> keyProps, out Dictionary<string, object> dict)
         {
-            keyValues = new();
-            var visitor = new KeyEqualityVisitor(keyProperties);
-            visitor.Visit(expression);
+            dict = new();
 
-            if (visitor.IsValid)
+            if (expr.Body is BinaryExpression andExpr && andExpr.NodeType == ExpressionType.AndAlso)
             {
-                keyValues = visitor.KeyValues!;
-                return true;
+                var stack = new Stack<BinaryExpression>();
+                stack.Push(andExpr);
+
+                while (stack.Count > 0)
+                {
+                    var current = stack.Pop();
+
+                    if (current.Left is BinaryExpression leftBinary && leftBinary.NodeType == ExpressionType.AndAlso)
+                        stack.Push(leftBinary);
+                    else if (!TryExtractBinary(current.Left, keyProps, ref dict))
+                        return false;
+
+                    if (current.Right is BinaryExpression rightBinary && rightBinary.NodeType == ExpressionType.AndAlso)
+                        stack.Push(rightBinary);
+                    else if (!TryExtractBinary(current.Right, keyProps, ref dict))
+                        return false;
+                }
+
+                return dict.Count == keyProps.Count;
+            }
+            else
+            {
+                return TryExtractBinary(expr.Body, keyProps, ref dict) && dict.Count == keyProps.Count;
+            }
+        }
+
+        private static bool TryExtractBinary(Expression expr, List<PropertyInfo> keyProps, ref Dictionary<string, object> dict)
+        {
+            if (expr is BinaryExpression binary && binary.NodeType == ExpressionType.Equal)
+            {
+                if (binary.Left is MemberExpression member && binary.Right is ConstantExpression constant)
+                {
+                    var prop = keyProps.FirstOrDefault(p => p.Name == member.Member.Name);
+                    if (prop != null)
+                    {
+                        dict[prop.Name] = constant.Value;
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        public static bool TryExtractSingleKey<TClass>(Expression<Func<TClass, bool>> expr, out string propertyName, out object value)
+        {
+            propertyName = null;
+            value = null;
+
+            if (expr.Body is BinaryExpression binary && binary.NodeType == ExpressionType.Equal)
+            {
+                if (binary.Left is MemberExpression member && binary.Right is ConstantExpression constant)
+                {
+                    propertyName = member.Member.Name;
+                    value = constant.Value;
+                    return true;
+                }
             }
 
             return false;
