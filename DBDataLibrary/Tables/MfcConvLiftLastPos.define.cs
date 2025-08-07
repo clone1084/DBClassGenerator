@@ -11,7 +11,7 @@ namespace DBDataLibrary.Tables
     // --          CHANGES HERE ARE SAFE!         --
     //  -------------------------------------------
     // TODO Customize the TableType to allow more functions of the table
-    [TableType(TableTypes.ReadOnly)]
+    [TableType(TableTypes.Updatable | TableTypes.Cached)]
     public partial class MfcConvLiftLastPos
     {
          // Keep this clear.

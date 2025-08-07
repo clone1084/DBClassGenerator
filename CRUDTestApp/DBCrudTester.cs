@@ -350,7 +350,7 @@ namespace CRUDTestApp
                     var result = method.Invoke(null, new object[] { conn, log, baseLogMessage }); // second param is whereFilter, third parameter il cache loading
                     var loadedList = ((IEnumerable<object>)result)?.ToList();
                     LogResult(loadedList?.Count ?? 0, "    Get");
-                    LogInfo($"    Get took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
+                    LogInfo($"    GetMany took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
                 }
                 else
                 {
