@@ -162,6 +162,11 @@ namespace DBDataLibrary.CRUD
             };
         }
 
+        public bool IsCached()
+        {
+            return HasTableTypeFlag(TableTypes.Cached);
+        }
+
         private static bool HasTableTypeFlag(TableTypes required)
         {
             var attr = typeof(TClass).GetCustomAttribute<TableTypeAttribute>();
@@ -626,6 +631,11 @@ namespace DBDataLibrary.CRUD
             return resultList;
         }
 
+        public void ReLoadCache(IDbConnection connection, ILog log, string baseLogMessage)
+        {
+            LoadCache(connection, log, baseLogMessage);
+        }
+
         public static void LoadCache(IDbConnection connection, ILog log, string baseLogMessage)
         {
             baseLogMessage += $"LoadCache for table '{typeof(TClass).Name}'";
@@ -660,7 +670,7 @@ namespace DBDataLibrary.CRUD
                 }
             }
 
-            log.Debug($"{baseLogMessage} Cached {_cache.Count} in {(dtStart-DateTime.Now).TotalMilliseconds:N2} ms");
+            log.Debug($"{baseLogMessage} Cached {_cache.Count} in {(DateTime.Now-dtStart).TotalMilliseconds:N2} ms");
         }
 
         private static TClass ReadData(IDataReader reader)

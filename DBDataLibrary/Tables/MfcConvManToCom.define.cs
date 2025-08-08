@@ -10,7 +10,7 @@ namespace DBDataLibrary.Tables
     // --                   ***                   --
     // --          CHANGES HERE ARE SAFE!         --
     //  -------------------------------------------
-    // TODO Customize the TableType to allow more functions of the table
+    // Customize the TableType to allow more functions of the table
     [TableType(TableTypes.Insertable | TableTypes.Deletable)]
     public partial class MfcConvManToCom
     {

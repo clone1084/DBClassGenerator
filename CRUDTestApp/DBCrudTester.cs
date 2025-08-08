@@ -1,5 +1,6 @@
 ﻿using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
+using DBDataLibrary.DbUtils;
 using DBDataLibrary.Tables;
 using log4net;
 using System;
@@ -50,6 +51,8 @@ namespace CRUDTestApp
 
             try
             {
+                CacheRefreshScheduler.Start(conn, log, TimeSpan.FromSeconds(10), "AutoCacheRefresh");
+
                 conn.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
                 log.Info($"{baseLogMessage} Transaction started.");
                 LogInfo("Transaction started. All operations will be rolled back at the end.");
@@ -68,6 +71,7 @@ namespace CRUDTestApp
                 conn.Rollback();
                 LogInfo("DB rolled back");
                 LogInfo();
+                CacheRefreshScheduler.Stop();
             }
         }
 

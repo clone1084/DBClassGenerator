@@ -1,8 +1,10 @@
 ﻿using log4net;
+using System.ComponentModel.Composition;
 using System.Data;
 
 namespace DBDataLibrary.CRUD
 {
+    [InheritedExport]
     public interface ICrudClass
     {        
         string TableName { get; }
@@ -10,9 +12,12 @@ namespace DBDataLibrary.CRUD
         IEnumerable<string> GetKeys();
         Dictionary<string, object> GetKeyValues();
         bool Insert(IDbConnection connection, ILog log, string baseLogMessage);
+        bool IsCached();
+        void ReLoadCache(IDbConnection connection, ILog log, string baseLogMessage);
         bool Update(IDbConnection connection, ILog log, string baseLogMessage);
     }
 
+    [InheritedExport(typeof(ICrudClass<>))]
     public interface ICrudClass<TClass>: ICrudClass
         where TClass : ICrudClass<TClass>, new()
     {
