@@ -92,32 +92,37 @@ namespace CRUDTestApp
             };
 
             //DateTime start = DateTime.Now;
-            LogResult(mov.Insert(conn, log, baseLogMessage), "    ManualInsert MfcConvMovements");
-            LogInfo($"OID: {mov.Oid}, DT_INSERT: {mov.DtInsert}");
+            //LogResult(mov.Insert(conn, log, baseLogMessage), "    ManualInsert MfcConvMovements");
+            //LogInfo($"OID: {mov.Oid}, DT_INSERT: {mov.DtInsert}");
+            log.Info($"Insert: {(mov.Insert(conn, log, baseLogMessage) ? "OK" : "KO")} at DT_INSERT: {mov.DtInsert}");
             //LogWarning($"Insert took {(DateTime.Now - start).TotalMilliseconds:N2} ms");
 
             mov.ActualType = 6;
             mov.ActualPar1 = 2002;
             
             //start = DateTime.Now;
-            LogResult(mov.Update(conn, log, baseLogMessage), "    ManualUpdate ManToCom");
-            LogInfo($"DtUpdated: {mov.DtUpdate}");
+            //LogResult(mov.Update(conn, log, baseLogMessage), "    ManualUpdate ManToCom");
+            //LogInfo($"DtUpdated: {mov.DtUpdate}");
+            log.Info($"Update: {(mov.Update(conn, log, baseLogMessage) ? "OK" : "KO")} at DT_UPDATE: {mov.DtUpdate}");
             //LogWarning($"Update took {(DateTime.Now - start).TotalMilliseconds:N2} ms");
 
             //start = DateTime.Now;
             MfcConvMovements mov2 = MfcConvMovements.Get(conn, log, baseLogMessage, x => x.Oid == mov.Oid);
             //LogWarning($"ManualLoad took {(DateTime.Now - start).TotalMilliseconds:N2} ms");
-            LogResult(mov2 != null, "    ManualLoad ManToCom");
-            LogResult(mov2 != null && mov2.Oid == mov.Oid, "ManualLoad have the same OID of ManualInsert");
-            LogInfo($"DB Loaded actual position: {mov2.ActualPar1} DtUpdate: {mov2.DtUpdate}");
+            //LogResult(mov2 != null, "    ManualLoad ManToCom");
+            //LogResult(mov2 != null && mov2.Oid == mov.Oid, "ManualLoad have the same OID of ManualInsert");
+            //LogInfo($"DB Loaded actual position: {mov2.ActualPar1} DtUpdate: {mov2.DtUpdate}");
+            log.Info($"Get: {(mov2 != null? "OK" : "KO")} at DT_UPDATE: {mov2.DtUpdate}");
 
             //start = DateTime.Now;
             var allMtc = MfcConvMovements.GetMany(conn, log, baseLogMessage);
-            //LogWarning($"ManualLoadAll took {(DateTime.Now - start).TotalMilliseconds:N2} ms");
-            LogResult(allMtc?.Count() != 0, "    ManualLoadAll MfcConvMovements");
-            LogInfo($"Loaded {allMtc?.Count()} MfcConvManToCom records from DB");
+            ////LogWarning($"ManualLoadAll took {(DateTime.Now - start).TotalMilliseconds:N2} ms");
+            //LogResult(allMtc?.Count() != 0, "    ManualLoadAll MfcConvMovements");
+            //LogInfo($"Loaded {allMtc?.Count()} MfcConvManToCom records from DB");
+            log.Info($"GetMany: {(allMtc?.Count() != 0 ? "OK" : "KO")}");
 
-            LogResult(mov.Delete(conn, log, baseLogMessage), "    ManualDelete ManToCom");
+            //LogResult(mov.Delete(conn, log, baseLogMessage), "    ManualDelete ManToCom");
+            log.Info($"Delete: {(mov.Delete(conn, log, baseLogMessage) ? "OK" : "KO")}");
         }
 
         private void ManualTest2(Oracle.ManagedDataAccess.Client.OracleConnection conn, log4net.ILog log, string baseLogMessage)

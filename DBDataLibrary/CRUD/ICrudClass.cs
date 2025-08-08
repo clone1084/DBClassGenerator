@@ -13,7 +13,7 @@ namespace DBDataLibrary.CRUD
         Dictionary<string, object> GetKeyValues();
         bool Insert(IDbConnection connection, ILog log, string baseLogMessage);
         bool IsCached();
-        void ReLoadCache(IDbConnection connection, ILog log, string baseLogMessage);
+        void ReLoadCache(IDbConnection connection, ILog log, string baseLogMessage, CancellationToken cancellationToken);
         bool Update(IDbConnection connection, ILog log, string baseLogMessage);
     }
 

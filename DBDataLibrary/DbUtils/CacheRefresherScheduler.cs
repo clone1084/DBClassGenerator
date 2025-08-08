@@ -21,22 +21,31 @@ namespace DBDataLibrary.DbUtils
         public void Compose()
         {
             var catalog = new AggregateCatalog();
-            catalog.Catalogs.Add(new AssemblyCatalog(Assembly.GetExecutingAssembly())); // o directory catalog
-            catalog.Catalogs.Add(new AssemblyCatalog(Assembly.GetAssembly(typeof(ICrudClass)))); // o directory catalog
+            catalog.Catalogs.Add(new AssemblyCatalog(Assembly.GetExecutingAssembly())); 
+            
+            var crudAssembly = Assembly.GetAssembly(typeof(ICrudClass));
+            if (crudAssembly != null)
+                catalog.Catalogs.Add(new AssemblyCatalog(crudAssembly)); 
 
             var container = new CompositionContainer(catalog);
             container.ComposeParts(this);
         }
 
-        public void LoadAllCaches(IDbConnection connection, ILog log, string baseLogMessage)
+        public void LoadAllCaches(IDbConnection connection, ILog log, string baseLogMessage, CancellationToken cancellationToken)
         {
             foreach (var cacheable in Cacheables)
             {
                 if (!cacheable.IsCached())
                     continue;
 
-                log.Debug($"Loading cache for {cacheable.TableName}");
-                cacheable.ReLoadCache(connection, log, baseLogMessage);                
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    log.Debug($"{baseLogMessage} Cache refresh cancelled.");
+                    return;
+                }
+
+                log.Debug($"{baseLogMessage} Loading cache for {cacheable.TableName}");
+                cacheable.ReLoadCache(connection, log, baseLogMessage, cancellationToken);                
             }
         }
     }
@@ -56,7 +65,7 @@ namespace DBDataLibrary.DbUtils
                 {
                     try
                     {
-                        cbs.LoadAllCaches(connection, log, baseLogMessage);
+                        cbs.LoadAllCaches(connection, log, baseLogMessage, _cts.Token);
                     }
                     catch (Exception ex)
                     {
@@ -68,27 +77,9 @@ namespace DBDataLibrary.DbUtils
             }, _cts.Token);
         }
 
-        //public static void Stop()
-        //{
-        //    _cts.Cancel();
-        //    _backgroundTask?.Wait();
-        //}
         public static void Stop()
         {
             _cts.Cancel();
-            try
-            {
-                _backgroundTask?.Wait();
-            }
-            catch (AggregateException ex)
-            {
-                foreach (var inner in ex.InnerExceptions)
-                {
-                    if (inner is not TaskCanceledException)
-                        throw;
-                }
-            }
         }
-
     }
 }

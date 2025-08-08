@@ -1,5 +1,6 @@
 ﻿using DBDataLibrary.Attributes;
 using DBDataLibrary.DbUtils;
+using DBDataLibrary.Utils;
 using log4net;
 using System.Collections.Concurrent;
 using System.Data;
@@ -175,6 +176,8 @@ namespace DBDataLibrary.CRUD
 
         public bool Insert(IDbConnection connection, ILog log, string baseLogMessage)
         {
+            baseLogMessage += $"{typeof(TClass).Name}.Insert: ";
+
             if (HasTableTypeFlag(TableTypes.ReadOnly))
             {
                 log.Error($"{baseLogMessage} - Insert operation is not allowed! Table '{typeof(TClass).Name}' is marked as ReadOnly.");
@@ -187,98 +190,109 @@ namespace DBDataLibrary.CRUD
                 throw new InvalidOperationException($"Insert is not allowed for table type '{typeof(TClass).Name}'.");
             }
 
-            DateTime insertStart = DateTime.Now;
-
-            var keyProps = GetKeyProperties(); 
-            var allProps = GetAllColumnsProperties();
-
-            // OID_COLUMN is not insertable, because its auto populated, so we exclude it from the insertable properties
-            // DT_INSERT is inserted as SYSDATE by default, so we exclude it from the insertable properties
-            var insertableProps = allProps.Except(keyProps)
-                .Where(p => !GetColumnName(p).Equals(OID_COLUMN, StringComparison.OrdinalIgnoreCase)
-                         && !GetColumnName(p).Equals(DT_INSERT_COLUMN, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-
-            var dtInsertProp = allProps.FirstOrDefault(p => GetColumnName(p).Equals(DT_INSERT_COLUMN, StringComparison.OrdinalIgnoreCase));
-
-            var columnListItems = insertableProps.Select(GetColumnName).ToList();
-            var paramListItems = insertableProps.Select(p => ":" + GetColumnName(p)).ToList();
-
-            if (dtInsertProp != null)
+            using (ExecutionTimerLogger etl = new ExecutionTimerLogger(log, baseLogMessage, LogLevel.Debug))
             {
-                columnListItems.Add(DT_INSERT_COLUMN);
-                paramListItems.Add("SYSDATE");
+                try
+                {
+                    var keyProps = GetKeyProperties();
+                    var allProps = GetAllColumnsProperties();
+
+                    // OID_COLUMN is not insertable, because its auto populated, so we exclude it from the insertable properties
+                    // DT_INSERT is inserted as SYSDATE by default, so we exclude it from the insertable properties
+                    var insertableProps = allProps.Except(keyProps)
+                        .Where(p => !GetColumnName(p).Equals(OID_COLUMN, StringComparison.OrdinalIgnoreCase)
+                                 && !GetColumnName(p).Equals(DT_INSERT_COLUMN, StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+
+                    var dtInsertProp = allProps.FirstOrDefault(p => GetColumnName(p).Equals(DT_INSERT_COLUMN, StringComparison.OrdinalIgnoreCase));
+
+                    var columnListItems = insertableProps.Select(GetColumnName).ToList();
+                    var paramListItems = insertableProps.Select(p => ":" + GetColumnName(p)).ToList();
+
+                    if (dtInsertProp != null)
+                    {
+                        columnListItems.Add(DT_INSERT_COLUMN);
+                        paramListItems.Add("SYSDATE");
+                    }
+
+                    var columnList = string.Join(", ", columnListItems);
+                    var paramList = string.Join(", ", paramListItems);
+
+                    var outProps = keyProps;
+                    if (dtInsertProp != null)
+                    {
+                        outProps.Add(dtInsertProp);
+                    }
+                    var returningClause = outProps.Any()
+                        ? $" RETURNING {string.Join(", ", outProps.Select(GetColumnName))} INTO {string.Join(", ", outProps.Select(p => ":" + GetColumnName(p) + "_OUT"))}"
+                        : string.Empty;
+
+                    var sql = $@"
+                        INSERT INTO {TableName} ({columnList})
+                        VALUES ({paramList}){returningClause}";
+
+                    using var cmd = connection.CreateCommand();
+                    cmd.CommandText = sql;
+
+                    // Parametri di input
+                    foreach (var prop in insertableProps)
+                    {
+                        var param = cmd.CreateParameter();
+                        param.ParameterName = ":" + GetColumnName(prop);
+                        param.Value = prop.GetValue(this) ?? DBNull.Value;
+                        cmd.Parameters.Add(param);
+                    }
+
+                    // Parametri di output per le chiavi
+                    var outputParams = new Dictionary<PropertyInfo, IDataParameter>();
+
+                    foreach (var outProp in outProps)
+                    {
+                        var param = cmd.CreateParameter();
+                        param.ParameterName = ":" + GetColumnName(outProp) + "_OUT";
+                        param.Direction = ParameterDirection.Output;
+
+                        // Mapping tipo C# → tipo Db
+                        param.DbType = MapTypeToDbType(outProp.PropertyType);
+                        cmd.Parameters.Add(param);
+
+                        outputParams[outProp] = param;
+                    }
+
+                    bool inserted = cmd.ExecuteNonQuery() == 1;
+
+                    // Recupero dei valori autogenerati
+                    foreach (var kv in outputParams)
+                    {
+                        var prop = kv.Key;
+                        var param = kv.Value;
+
+                        if (param.Value != DBNull.Value)
+                            prop.SetValue(this, Convert.ChangeType(param.Value, Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType));
+                    }
+
+                    if (HasTableTypeFlag(TableTypes.Cached) && inserted)
+                    {
+                        AddToCache((TClass)this);
+                    }
+
+                    _modifiedProperties.Clear();
+
+                    return inserted;
+                }
+                catch (Exception ex)
+                {
+                    log.Error($"{baseLogMessage}Error inserting record: {ex.Message}", ex);
+                    etl.CaptureException(ex);
+                    return false;
+                }
             }
-
-            var columnList = string.Join(", ", columnListItems);
-            var paramList = string.Join(", ", paramListItems);
-
-            var outProps = keyProps;
-            if (dtInsertProp != null)
-            {
-                outProps.Add(dtInsertProp);
-            }
-            var returningClause = outProps.Any()
-                ? $" RETURNING {string.Join(", ", outProps.Select(GetColumnName))} INTO {string.Join(", ", outProps.Select(p => ":" + GetColumnName(p) + "_OUT"))}"
-                : string.Empty;
-
-            var sql = $@"
-                INSERT INTO {TableName} ({columnList})
-                VALUES ({paramList}){returningClause}";
-
-            using var cmd = connection.CreateCommand();
-            cmd.CommandText = sql;
-
-            // Parametri di input
-            foreach (var prop in insertableProps)
-            {
-                var param = cmd.CreateParameter();
-                param.ParameterName = ":" + GetColumnName(prop);
-                param.Value = prop.GetValue(this) ?? DBNull.Value;
-                cmd.Parameters.Add(param);
-            }
-
-            // Parametri di output per le chiavi
-            var outputParams = new Dictionary<PropertyInfo, IDataParameter>();
-
-            foreach (var outProp in outProps)
-            {
-                var param = cmd.CreateParameter();
-                param.ParameterName = ":" + GetColumnName(outProp) + "_OUT";
-                param.Direction = ParameterDirection.Output;
-
-                // Mapping tipo C# → tipo Db
-                param.DbType = MapTypeToDbType(outProp.PropertyType);
-                cmd.Parameters.Add(param);
-
-                outputParams[outProp] = param;
-            }
-
-            bool inserted = cmd.ExecuteNonQuery() == 1;
-
-            // Recupero dei valori autogenerati
-            foreach (var kv in outputParams)
-            {
-                var prop = kv.Key;
-                var param = kv.Value;
-
-                if (param.Value != DBNull.Value)
-                    prop.SetValue(this, Convert.ChangeType(param.Value, Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType));
-            }
-
-            if (HasTableTypeFlag(TableTypes.Cached) && inserted)
-            {
-                AddToCache((TClass)this);
-            }
-
-            _modifiedProperties.Clear();
-
-            //Console.WriteLine($"Insert done in {(DateTime.Now - insertStart).TotalMilliseconds} ms for {typeof(TClass).Name}");
-            return inserted;
         }
 
         public bool Update(IDbConnection connection, ILog log, string baseLogMessage)
         {
+            baseLogMessage += $"{typeof(TClass).Name}.Update: ";
+
             if (HasTableTypeFlag(TableTypes.ReadOnly))
             {
                 log.Error($"{baseLogMessage} - Update operation is not allowed! Table '{typeof(TClass).Name}' is marked as ReadOnly.");
@@ -291,131 +305,142 @@ namespace DBDataLibrary.CRUD
                 throw new InvalidOperationException($"Update is not allowed for table type '{typeof(TClass).Name}'.");
             }
 
-            DateTime updateStart = DateTime.Now;
-
-            var modified = _modifiedProperties.ToList();
-            if (!modified.Any())
-                return true;
-
-            var type = typeof(TClass);
-            var propsModified = modified
-                .Select(name => type.GetProperty(name))
-                .Where(p => p != null && p.GetCustomAttribute<System.ComponentModel.DataAnnotations.KeyAttribute>() == null)
-                .ToList();
-
-            if (!propsModified.Any())
-                return true;
-
-            var keyProps = GetKeyProperties();
-            if (!keyProps.Any())
+            using (ExecutionTimerLogger etl = new ExecutionTimerLogger(log, baseLogMessage, LogLevel.Debug))
             {
-                log.Error($"{baseLogMessage} - No [Key] properties found for update operation in table '{typeof(TClass).Name}'.");
-                throw new InvalidOperationException("No [Key] properties found for update.");
-            }
-
-            var dtUpdateProp = type.GetProperties().FirstOrDefault(p => GetColumnName(p).Equals(DT_UPDATE_COLUMN, StringComparison.OrdinalIgnoreCase));
-
-            var setAssignments = new List<string>();
-            var outputParams = new Dictionary<PropertyInfo, IDataParameter>();
-            
-            foreach (var prop in propsModified)
-            {
-                if (prop == null)
-                    continue;
-
-                var column = GetColumnName(prop);
-
-                if (column.Equals(DT_UPDATE_COLUMN, StringComparison.OrdinalIgnoreCase))
+                try
                 {
-                    continue; // Skip DT_UPDATE column in set assignments
+                    var modified = _modifiedProperties.ToList();
+                    if (!modified.Any())
+                        return true;
+
+                    var type = typeof(TClass);
+                    var propsModified = modified
+                        .Select(name => type.GetProperty(name))
+                        .Where(p => p != null && p.GetCustomAttribute<System.ComponentModel.DataAnnotations.KeyAttribute>() == null)
+                        .ToList();
+
+                    if (!propsModified.Any())
+                        return true;
+
+                    var keyProps = GetKeyProperties();
+                    if (!keyProps.Any())
+                    {
+                        log.Error($"{baseLogMessage} - No [Key] properties found for update operation in table '{typeof(TClass).Name}'.");
+                        throw new InvalidOperationException("No [Key] properties found for update.");
+                    }
+
+                    var dtUpdateProp = type.GetProperties().FirstOrDefault(p => GetColumnName(p).Equals(DT_UPDATE_COLUMN, StringComparison.OrdinalIgnoreCase));
+
+                    var setAssignments = new List<string>();
+                    var outputParams = new Dictionary<PropertyInfo, IDataParameter>();
+
+                    foreach (var prop in propsModified)
+                    {
+                        if (prop == null)
+                            continue;
+
+                        var column = GetColumnName(prop);
+
+                        if (column.Equals(DT_UPDATE_COLUMN, StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue; // Skip DT_UPDATE column in set assignments
+                        }
+                        else
+                        {
+                            setAssignments.Add($"{column} = :{column}");
+                        }
+                    }
+
+                    if (dtUpdateProp != null && setAssignments.Any())
+                    {
+                        setAssignments.Add($"{DT_UPDATE_COLUMN} = SYSDATE");
+                    }
+
+                    var setClause = string.Join(", ", setAssignments);
+                    var whereClause = string.Join(" AND ", keyProps.Select(p => $"{GetColumnName(p)} = :{GetColumnName(p)}"));
+
+                    // Prepare RETURNING clause if DT_UPDATE is in the update
+                    string returningClause = string.Empty;
+                    if (dtUpdateProp != null)
+                    {
+                        returningClause = $" RETURNING {DT_UPDATE_COLUMN} INTO :{DT_UPDATE_COLUMN}_OUT";
+                    }
+
+                    var sql = $"UPDATE {TableName} SET {setClause} WHERE {whereClause}{returningClause}";
+
+                    using var cmd = connection.CreateCommand();
+                    cmd.CommandText = sql;
+
+                    // Input parameters
+                    foreach (var prop in propsModified.Where(p => p != null && !GetColumnName(p).Equals(DT_UPDATE_COLUMN, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        if (prop == null)
+                            continue;
+
+                        var param = cmd.CreateParameter();
+                        param.ParameterName = ":" + GetColumnName(prop);
+                        param.Value = prop.GetValue(this) ?? DBNull.Value;
+                        cmd.Parameters.Add(param);
+                    }
+
+                    foreach (var keyProp in keyProps)
+                    {
+                        var param = cmd.CreateParameter();
+                        param.ParameterName = ":" + GetColumnName(keyProp);
+                        param.Value = keyProp.GetValue(this) ?? DBNull.Value;
+                        cmd.Parameters.Add(param);
+                    }
+
+                    // Output parameter for DT_UPDATE
+                    if (dtUpdateProp != null)
+                    {
+                        var param = cmd.CreateParameter();
+                        param.ParameterName = ":" + DT_UPDATE_COLUMN + "_OUT";
+                        param.Direction = ParameterDirection.Output;
+                        param.DbType = DbType.DateTime;
+                        cmd.Parameters.Add(param);
+                        outputParams[dtUpdateProp] = param;
+                    }
+
+                    bool updated = cmd.ExecuteNonQuery() > 0;
+
+                    // Set output values
+                    foreach (var kv in outputParams)
+                    {
+                        var prop = kv.Key;
+                        var param = kv.Value;
+
+                        if (param.Value != DBNull.Value)
+                        {
+                            var targetType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
+                            prop.SetValue(this, Convert.ChangeType(param.Value, targetType));
+                        }
+                    }
+
+                    if (updated)
+                    {
+                        _modifiedProperties.Clear();
+                        if (HasTableTypeFlag(TableTypes.Cached))
+                        {
+                            AddToCache((TClass)this);
+                        }
+                    }
+
+                    return updated;
                 }
-                else
+                catch (Exception ex)
                 {
-                    setAssignments.Add($"{column} = :{column}");
+                    log.Error($"{baseLogMessage}Error updating record: {ex.Message}", ex);
+                    etl.CaptureException(ex);
+                    return false;
                 }
             }
-
-            if (dtUpdateProp != null && setAssignments.Any())
-            {
-                setAssignments.Add($"{DT_UPDATE_COLUMN} = SYSDATE");
-            }
-
-            var setClause = string.Join(", ", setAssignments);
-            var whereClause = string.Join(" AND ", keyProps.Select(p => $"{GetColumnName(p)} = :{GetColumnName(p)}"));
-
-            // Prepare RETURNING clause if DT_UPDATE is in the update
-            string returningClause = string.Empty;
-            if (dtUpdateProp != null)
-            {
-                returningClause = $" RETURNING {DT_UPDATE_COLUMN} INTO :{DT_UPDATE_COLUMN}_OUT";
-            }
-
-            var sql = $"UPDATE {TableName} SET {setClause} WHERE {whereClause}{returningClause}";
-
-            using var cmd = connection.CreateCommand();
-            cmd.CommandText = sql;
-
-            // Input parameters
-            foreach (var prop in propsModified.Where(p => p != null && !GetColumnName(p).Equals(DT_UPDATE_COLUMN, StringComparison.OrdinalIgnoreCase)))
-            { 
-                if (prop == null)
-                    continue;
-
-                var param = cmd.CreateParameter();
-                param.ParameterName = ":" + GetColumnName(prop);
-                param.Value = prop.GetValue(this) ?? DBNull.Value;
-                cmd.Parameters.Add(param);
-            }
-
-            foreach (var keyProp in keyProps)
-            {
-                var param = cmd.CreateParameter();
-                param.ParameterName = ":" + GetColumnName(keyProp);
-                param.Value = keyProp.GetValue(this) ?? DBNull.Value;
-                cmd.Parameters.Add(param);
-            }
-
-            // Output parameter for DT_UPDATE
-            if (dtUpdateProp != null)
-            {
-                var param = cmd.CreateParameter();
-                param.ParameterName = ":" + DT_UPDATE_COLUMN + "_OUT";
-                param.Direction = ParameterDirection.Output;
-                param.DbType = DbType.DateTime;
-                cmd.Parameters.Add(param);
-                outputParams[dtUpdateProp] = param;
-            }
-
-            bool updated = cmd.ExecuteNonQuery() > 0;
-
-            // Set output values
-            foreach (var kv in outputParams)
-            {
-                var prop = kv.Key;
-                var param = kv.Value;
-
-                if (param.Value != DBNull.Value)
-                {
-                    var targetType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
-                    prop.SetValue(this, Convert.ChangeType(param.Value, targetType));
-                }
-            }
-
-            if (updated)
-            {
-                _modifiedProperties.Clear();
-                if (HasTableTypeFlag(TableTypes.Cached))
-                {
-                    AddToCache((TClass)this);
-                }
-            }
-
-            //Console.WriteLine($"Update done in {(DateTime.Now - updateStart).TotalMilliseconds} ms for {typeof(TClass).Name}");
-            return updated;
         }
 
         public bool Delete(IDbConnection connection, ILog log, string baseLogMessage)
         {
+            baseLogMessage += $"{typeof(TClass).Name}.Delete: ";
+
             if (HasTableTypeFlag(TableTypes.ReadOnly))
             {
                 log.Error($"{baseLogMessage} - Delete operation is not allowed! Table '{typeof(TClass).Name}' is marked as ReadOnly.");
@@ -428,37 +453,47 @@ namespace DBDataLibrary.CRUD
                 throw new InvalidOperationException($"Delete is not allowed for table type '{typeof(TClass).Name}'.");
             }
 
-            DateTime updateStart = DateTime.Now;
-
-            var keyProps = GetKeyProperties();
-            if (!keyProps.Any())
+            using (ExecutionTimerLogger etl = new ExecutionTimerLogger(log, baseLogMessage, LogLevel.Debug))
             {
-                log.Error($"{baseLogMessage} - No [Key] properties found for delete operation in table '{typeof(TClass).Name}'.");
-                throw new InvalidOperationException("No [Key] properties found for delete.");
+                try
+                {
+                    var keyProps = GetKeyProperties();
+                    if (!keyProps.Any())
+                    {
+                        log.Error($"{baseLogMessage} - No [Key] properties found for delete operation in table '{typeof(TClass).Name}'.");
+                        throw new InvalidOperationException("No [Key] properties found for delete.");
+                    }
+
+                    var whereClause = string.Join(" AND ", keyProps.Select(p => $"{GetColumnName(p)} = :{GetColumnName(p)}"));
+                    var sql = $"DELETE FROM {TableName} WHERE {whereClause}";
+
+                    using var cmd = connection.CreateCommand();
+                    cmd.CommandText = sql;
+
+                    foreach (var keyProp in keyProps)
+                    {
+                        var param = cmd.CreateParameter();
+                        param.ParameterName = ":" + GetColumnName(keyProp);
+                        param.Value = keyProp.GetValue(this) ?? DBNull.Value;
+                        cmd.Parameters.Add(param);
+                    }
+
+                    bool result = cmd.ExecuteNonQuery() > 0;
+
+                    if (HasTableTypeFlag(TableTypes.Cached) && result)
+                    {
+                        RemoveFromCache((TClass)this);
+                    }
+
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    log.Error($"{baseLogMessage}Error deleting record: {ex.Message}", ex);
+                    etl.CaptureException(ex);
+                    return false;
+                }
             }
-
-            var whereClause = string.Join(" AND ", keyProps.Select(p => $"{GetColumnName(p)} = :{GetColumnName(p)}"));
-            var sql = $"DELETE FROM {TableName} WHERE {whereClause}";
-
-            using var cmd = connection.CreateCommand();
-            cmd.CommandText = sql;
-
-            foreach (var keyProp in keyProps)
-            {
-                var param = cmd.CreateParameter();
-                param.ParameterName = ":" + GetColumnName(keyProp);
-                param.Value = keyProp.GetValue(this) ?? DBNull.Value;
-                cmd.Parameters.Add(param);
-            }
-
-            bool result = cmd.ExecuteNonQuery() > 0;
-
-            if (HasTableTypeFlag(TableTypes.Cached) && result)
-            {
-                RemoveFromCache((TClass)this);
-            }
-
-            return result;
         }
 
 
@@ -473,41 +508,54 @@ namespace DBDataLibrary.CRUD
         /// <returns></returns>
         public static TClass Get(IDbConnection connection, ILog log, string baseLogMessage, Expression<Func<TClass, bool>> whereExpression, bool ignoreCache = false)
         {
-            if (HasTableTypeFlag(TableTypes.Cached) && !ignoreCache)
+            baseLogMessage += $"{typeof(TClass).Name}.Get: ";
+            using (ExecutionTimerLogger etl = new ExecutionTimerLogger(log, baseLogMessage, LogLevel.Debug))
             {
-                if (CacheKeyExtractor.TryExtractSingleKey(whereExpression, out var keyName, out var keyValue))
+                try
                 {
-                    var fromIndex = TryFromIndex(keyName, keyValue);
-                    if (fromIndex != null)
-                        return fromIndex;
+                    if (HasTableTypeFlag(TableTypes.Cached) && !ignoreCache)
+                    {
+                        if (CacheKeyExtractor.TryExtractSingleKey(whereExpression, out var keyName, out var keyValue))
+                        {
+                            var fromIndex = TryFromIndex(keyName, keyValue);
+                            if (fromIndex != null)
+                                return fromIndex;
+                        }
+                        else if (CacheKeyExtractor.TryExtractKeyValues(whereExpression, GetKeyProperties(), out var keyDict))
+                        {
+                            var cacheKey = GetCompositeKey(keyDict);
+                            if (_cache.TryGetValue(cacheKey, out var cached))
+                                return cached;
+                        }
+                    }
+
+                    using var cmd = connection.CreateCommand();
+
+                    var builder = new OracleWhereBuilder();
+                    var (whereClause, parameters) = builder.BuildWhere(whereExpression);
+                    // ✅ Aggiunta sicura dei parametri
+                    var sql = $"SELECT * FROM {GetTableName()} WHERE {whereClause}";
+
+                    cmd.CommandText = sql;
+                    DbCommandHelper.AddParameters(cmd, parameters);
+
+                    using var reader = cmd.ExecuteReader();
+                    if (!reader.Read())
+                        return default!;
+
+                    var loadedInstance = ReadData(reader, log, baseLogMessage);
+                    if (HasTableTypeFlag(TableTypes.Cached))
+                        AddToCache(loadedInstance);
+
+                    return loadedInstance;
                 }
-                else if (CacheKeyExtractor.TryExtractKeyValues(whereExpression, GetKeyProperties(), out var keyDict))
+                catch (Exception ex)
                 {
-                    var cacheKey = GetCompositeKey(keyDict);
-                    if (_cache.TryGetValue(cacheKey, out var cached))
-                        return cached;
+                    log.Error($"{baseLogMessage}Error retrieving record: {ex.Message}", ex);
+                    etl.CaptureException(ex);
+                    return default!;
                 }
             }
-
-            using var cmd = connection.CreateCommand();
-
-            var builder = new OracleWhereBuilder();
-            var (whereClause, parameters) = builder.BuildWhere(whereExpression);
-            // ✅ Aggiunta sicura dei parametri
-            var sql = $"SELECT * FROM {GetTableName()} WHERE {whereClause}";
-
-            cmd.CommandText = sql;
-            DbCommandHelper.AddParameters(cmd, parameters);
-
-            using var reader = cmd.ExecuteReader();
-            if (!reader.Read())
-                return default!;
-
-            var loadedInstance = ReadData(reader);
-            if (HasTableTypeFlag(TableTypes.Cached))
-                AddToCache(loadedInstance);
-
-            return loadedInstance;
         }
 
 
@@ -541,50 +589,63 @@ namespace DBDataLibrary.CRUD
         /// <returns></returns>
         public static IEnumerable<TClass> GetMany(IDbConnection connection, ILog log, string baseLogMessage, Expression<Func<TClass, bool>>? whereExpression = null, bool ignoreCache = false)
         {
-            // If the table is marked as Cached, we will use the cache if available
-            if (!ignoreCache && HasTableTypeFlag(TableTypes.Cached))
-            {   
-                if (!_cache.Any())
-                {
-                    LoadCache(connection, log, baseLogMessage);
-                }
+            baseLogMessage += $"{typeof(TClass).Name}.GetMany: ";
+            var resultList = new List<TClass>();
 
-                if (_cache.Any())
+            using (ExecutionTimerLogger etl = new ExecutionTimerLogger(log, baseLogMessage, LogLevel.Debug))
+            {
+                try
                 {
-                    var cachedList = _cache.Values;
+                    // If the table is marked as Cached, we will use the cache if available
+                    if (!ignoreCache && HasTableTypeFlag(TableTypes.Cached))
+                    {
+                        if (!_cache.Any())
+                        {
+                            LoadCache(connection, log, baseLogMessage);
+                        }
+
+                        if (_cache.Any())
+                        {
+                            var cachedList = _cache.Values;
+                            if (whereExpression != null)
+                            {
+                                var predicate = whereExpression.Compile();
+                                return cachedList.Where(predicate).ToList();
+                            }
+                            return cachedList.ToList();
+                        }
+                    }
+
+                    // If we are here, it means we are not using cache
+                    using var cmd = connection.CreateCommand();
+                    var sql = $"SELECT * FROM {GetTableName()} ";
                     if (whereExpression != null)
                     {
-                        var predicate = whereExpression.Compile();
-                        return cachedList.Where(predicate).ToList();
+                        // ✅ Usa OracleWhereBuilder per creare clausola e parametri
+                        var builder = new OracleWhereBuilder();
+                        var (whereClause, parameters) = builder.BuildWhere(whereExpression);
+                        // ✅ Aggiunta sicura dei parametri
+                        DbCommandHelper.AddParameters(cmd, parameters);
+                        sql += $" WHERE {whereClause} ";
                     }
-                    return cachedList.ToList();
+
+                    cmd.CommandText = sql;
+
+                    using var reader = cmd.ExecuteReader();
+                    var type = typeof(TClass);
+                    var props = type.GetProperties().ToDictionary(p => GetColumnName(p), p => p, StringComparer.OrdinalIgnoreCase);
+
+                    while (reader.Read())
+                    {
+                        var loadedInstance = ReadData(reader, log, baseLogMessage);
+                        resultList.Add(loadedInstance);
+                    }
                 }
-            }
-
-            // If we are here, it means we are not using cache
-            using var cmd = connection.CreateCommand();
-            var sql = $"SELECT * FROM {GetTableName()} ";
-            if (whereExpression != null)
-            {
-                // ✅ Usa OracleWhereBuilder per creare clausola e parametri
-                var builder = new OracleWhereBuilder();
-                var (whereClause, parameters) = builder.BuildWhere(whereExpression);
-                // ✅ Aggiunta sicura dei parametri
-                DbCommandHelper.AddParameters(cmd, parameters);
-                sql += $" WHERE {whereClause} ";
-            }
-
-            cmd.CommandText = sql;
-
-            using var reader = cmd.ExecuteReader();
-            var resultList = new List<TClass>();
-            var type = typeof(TClass);
-            var props = type.GetProperties().ToDictionary(p => GetColumnName(p), p => p, StringComparer.OrdinalIgnoreCase);
-
-            while (reader.Read())
-            {
-                var loadedInstance = ReadData(reader);
-                resultList.Add(loadedInstance);
+                catch (Exception ex)
+                {
+                    log.Error($"{baseLogMessage}Error retrieving records: {ex.Message}", ex);
+                    etl.CaptureException(ex);
+                }
             }
 
             return resultList;
@@ -600,105 +661,139 @@ namespace DBDataLibrary.CRUD
         /// <returns></returns>
         public static IEnumerable<TClass> GetMany(IDbConnection connection, ILog log, string baseLogMessage, string whereFilter = "", Dictionary<string, object?>? parameters = null)
         {
-            var sql = $"SELECT * FROM {GetTableName()}";
-            if (!string.IsNullOrWhiteSpace(whereFilter))
-            {
-                sql += " WHERE " + whereFilter;
-            }
+            baseLogMessage += $"{typeof(TClass).Name}.GetMany: ";
 
-            using var cmd = connection.CreateCommand();
-            cmd.CommandText = sql;
-            if (parameters != null)
-            {
-                foreach (var kvp in parameters)
-                {
-                    // ✅ Aggiunta sicura dei parametri
-                    DbCommandHelper.AddParameters(cmd, parameters);
-                }
-            }
-
-            using var reader = cmd.ExecuteReader();
             var resultList = new List<TClass>();
-            var type = typeof(TClass);
-            var props = type.GetProperties().ToDictionary(p => GetColumnName(p), p => p, StringComparer.OrdinalIgnoreCase);
 
-            while (reader.Read())
+            using (ExecutionTimerLogger etl = new ExecutionTimerLogger(log, baseLogMessage, LogLevel.Debug))
             {
-                var loadedInstance = ReadData(reader);
-                resultList.Add(loadedInstance);
+                try
+                {
+                    var sql = $"SELECT * FROM {GetTableName()}";
+                    if (!string.IsNullOrWhiteSpace(whereFilter))
+                    {
+                        baseLogMessage += $" WHERE {whereFilter}: ";
+                        sql += " WHERE " + whereFilter;
+                    }
+
+                    using var cmd = connection.CreateCommand();
+                    cmd.CommandText = sql;
+                    if (parameters != null)
+                    {
+                        foreach (var kvp in parameters)
+                        {
+                            // ✅ Aggiunta sicura dei parametri
+                            DbCommandHelper.AddParameters(cmd, parameters);
+                        }
+                    }
+
+                    using var reader = cmd.ExecuteReader();
+                    var type = typeof(TClass);
+                    var props = type.GetProperties().ToDictionary(p => GetColumnName(p), p => p, StringComparer.OrdinalIgnoreCase);
+
+                    while (reader.Read())
+                    {
+                        var loadedInstance = ReadData(reader, log, baseLogMessage);
+                        resultList.Add(loadedInstance);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    log.Error($"{baseLogMessage}Error retrieving records: {ex.Message}", ex);
+                    etl.CaptureException(ex);
+                } 
             }
 
             return resultList;
         }
 
-        public void ReLoadCache(IDbConnection connection, ILog log, string baseLogMessage)
+        public void ReLoadCache(IDbConnection connection, ILog log, string baseLogMessage, CancellationToken cancellationToken)
         {
+            baseLogMessage += $" {typeof(TClass).Name}.ReLoadCache: ";
+            if (cancellationToken.IsCancellationRequested)
+            {
+                log.Debug($"{baseLogMessage}{TableName}: Cache refresh cancelled.");
+                return;
+            }
             LoadCache(connection, log, baseLogMessage);
         }
 
         public static void LoadCache(IDbConnection connection, ILog log, string baseLogMessage)
         {
-            baseLogMessage += $"LoadCache for table '{typeof(TClass).Name}'";
+            baseLogMessage += $" LoadCache for table '{typeof(TClass).Name}': ";
             if (!HasTableTypeFlag(TableTypes.Cached))
             {
-                log.Error($"{baseLogMessage} - Table '{typeof(TClass).Name}' is not marked as Cached. Cannot load cache.");
+                log.Error($"{baseLogMessage} Table '{typeof(TClass).Name}' is not marked as Cached. Cannot load cache.");
                 throw new InvalidOperationException($"Table '{typeof(TClass).Name}' is not marked as Cached. Cannot load cache.");
             }
 
-            DateTime dtStart = DateTime.Now;
-            _cache.Clear();
-            log.Debug($"{baseLogMessage} - Cache cleared for table '{typeof(TClass).Name}'.");
-
-            var sql = $"SELECT * FROM {GetTableName()}";
-
-            using var cmd = connection.CreateCommand();
-            cmd.CommandText = sql;
-
-            using var reader = cmd.ExecuteReader();
-            var resultList = new List<TClass>();
-            var type = typeof(TClass);
-            var props = type.GetProperties().ToDictionary(p => GetColumnName(p), p => p, StringComparer.OrdinalIgnoreCase);
-
-            while (reader.Read())
+            using (ExecutionTimerLogger etl = new ExecutionTimerLogger(log, baseLogMessage, LogLevel.Debug))
             {
-                var loadedInstance = ReadData(reader);
-                resultList.Add(loadedInstance);
-
-                if (HasTableTypeFlag(TableTypes.Cached))
+                try
                 {
-                    AddToCache(loadedInstance);
+                    _cache.Clear();
+                    log.Debug($"{baseLogMessage} Cache cleared for table '{typeof(TClass).Name}'.");
+
+                    var sql = $"SELECT * FROM {GetTableName()}";
+
+                    using var cmd = connection.CreateCommand();
+                    cmd.CommandText = sql;
+
+                    using var reader = cmd.ExecuteReader();
+                    var resultList = new List<TClass>();
+                    var type = typeof(TClass);
+                    var props = type.GetProperties().ToDictionary(p => GetColumnName(p), p => p, StringComparer.OrdinalIgnoreCase);
+
+                    while (reader.Read())
+                    {
+                        var loadedInstance = ReadData(reader, log, baseLogMessage);
+                        resultList.Add(loadedInstance);
+
+                        if (HasTableTypeFlag(TableTypes.Cached))
+                        {
+                            AddToCache(loadedInstance);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    etl.CaptureException(ex);
+                    log.Error($"{baseLogMessage}Error loading cache for table '{typeof(TClass).Name}': {ex.Message}", ex);
                 }
             }
-
-            log.Debug($"{baseLogMessage} Cached {_cache.Count} in {(DateTime.Now-dtStart).TotalMilliseconds:N2} ms");
         }
 
-        private static TClass ReadData(IDataReader reader)
+        private static TClass ReadData(IDataReader reader, ILog log, string baseLogMessage)
         {
+            baseLogMessage += $"ReadData: ";
+
             var instance = new TClass();
-            var props = typeof(TClass).GetProperties().ToDictionary(p => GetColumnName(p), p => p, StringComparer.OrdinalIgnoreCase);
-
-            for (int i = 0; i < reader.FieldCount; i++)
+            using (ExecutionTimerLogger etl = new ExecutionTimerLogger(log, baseLogMessage, LogLevel.Debug, false))
             {
-                var name = reader.GetName(i);
-                if (!props.TryGetValue(name, out var prop) || !prop.CanWrite)
-                    continue;
+                var props = typeof(TClass).GetProperties().ToDictionary(p => GetColumnName(p), p => p, StringComparer.OrdinalIgnoreCase);
 
-                var value = reader.IsDBNull(i) ? null : reader.GetValue(i);
-
-                if (value != null)
+                for (int i = 0; i < reader.FieldCount; i++)
                 {
-                    // Get the underlying type of the property (e.g., Int32 for Nullable<Int32>)
-                    var targetType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
+                    var name = reader.GetName(i);
+                    if (!props.TryGetValue(name, out var prop) || !prop.CanWrite)
+                        continue;
 
-                    // Convert the value from the reader to the target type of the property
-                    value = Convert.ChangeType(value, targetType);
+                    var value = reader.IsDBNull(i) ? null : reader.GetValue(i);
+
+                    if (value != null)
+                    {
+                        // Get the underlying type of the property (e.g., Int32 for Nullable<Int32>)
+                        var targetType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
+
+                        // Convert the value from the reader to the target type of the property
+                        value = Convert.ChangeType(value, targetType);
+                    }
+
+                    prop.SetValue(instance, value);
                 }
-
-                prop.SetValue(instance, value);
+                // Clear the modified properties since we just loaded the data
+                instance._modifiedProperties.Clear();
             }
-            // Clear the modified properties since we just loaded the data
-            instance._modifiedProperties.Clear();
             return instance;
         }
 
