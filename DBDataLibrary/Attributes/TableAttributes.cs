@@ -28,6 +28,10 @@ namespace DBDataLibrary.Attributes
     }
 
     [Flags]
+    /// <summary>   
+    /// Represents the types of operations that can be performed on a table.
+    /// <para>Read is always allowed</para>
+    /// </summary>
     public enum TableTypes : byte
     {
         ///// <summary>
@@ -38,7 +42,7 @@ namespace DBDataLibrary.Attributes
         
         /// <summary>
         /// 1. Thi table is read-only, meaning it cannot be modified. 
-        /// <para>None of the CRUD operations (Insert, Update, Delete) are allowed.</para>
+        /// <para>None of the other operations (Insert, Update, Delete) are allowed.</para>
         /// </summary>
         ReadOnly = 1 << 0, // 1
 
