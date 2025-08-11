@@ -3,63 +3,81 @@ using log4net.Core;
 using log4net.Layout;
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace DBDataLibrary.Extensions
 {
-    using log4net.Appender;
-    using log4net.Core;
-    using log4net.Layout;
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Linq;
-    using System.Text.RegularExpressions;
-
     public class KeywordHighlightingConsoleAppender : AppenderSkeleton
     {
         public PatternLayout LayoutPattern { get; set; }
 
-        // Colori per livelli di log
-        private static readonly Dictionary<Level, ConsoleColor> _levelColors = new()
-        {
-            [Level.Debug] = ConsoleColor.Gray,
-            [Level.Info] = ConsoleColor.White,
-            [Level.Warn] = ConsoleColor.Yellow,
-            [Level.Error] = ConsoleColor.Red,
-            [Level.Fatal] = ConsoleColor.Red
-        };
+        private readonly Dictionary<Level, (ConsoleColor Fore, ConsoleColor Back)> _levelColors = new();
+        private readonly List<(Regex Pattern, ConsoleColor Fore, ConsoleColor Back)> _highlightKeywords = new();
 
-        // Colori per parole chiave nel messaggio
-        private static readonly List<(Regex Pattern, ConsoleColor Color)> _highlightKeywords = new()
+        // ====== CLASSI PER MAPPING CONFIGURABILE ======
+        public class LevelColorMapping
         {
-            (new Regex(@"\bOK\b", RegexOptions.IgnoreCase), ConsoleColor.Green),
-            (new Regex(@"\bsuccess\b", RegexOptions.IgnoreCase), ConsoleColor.Green),
+            public Level Level { get; set; }
+            public string ForeColor { get; set; }
+            public string BackColor { get; set; }
+        }
 
-            (new Regex(@"\bKO\b", RegexOptions.IgnoreCase), ConsoleColor.Red),
-            (new Regex(@"\bfail\b", RegexOptions.IgnoreCase), ConsoleColor.Red),
-            (new Regex(@"\bfailed\b", RegexOptions.IgnoreCase), ConsoleColor.Red),
-            (new Regex(@"\berror\b", RegexOptions.IgnoreCase), ConsoleColor.Red),
-        };
+        public class KeywordColorMapping
+        {
+            public string StringToMatch { get; set; }
+            public string ForeColor { get; set; }
+            public string BackColor { get; set; }
+        }
+
+        // ====== CHIAMATI DA log4net DURANTE CONFIGURAZIONE XML ======
+        public void AddMapping(LevelColorMapping mapping)
+        {
+            if (mapping?.Level != null)
+            {
+                _levelColors[mapping.Level] = (
+                    ParseConsoleColor(mapping.ForeColor),
+                    ParseConsoleColor(mapping.BackColor)
+                );
+            }
+        }
+
+        public void AddKeywordMapping(KeywordColorMapping mapping)
+        {
+            if (!string.IsNullOrWhiteSpace(mapping?.StringToMatch))
+            {
+                _highlightKeywords.Add((
+                    new Regex(Regex.Escape(mapping.StringToMatch), RegexOptions.IgnoreCase),
+                    ParseConsoleColor(mapping.ForeColor),
+                    ParseConsoleColor(mapping.BackColor)
+                ));
+            }
+        }
 
         protected override void Append(LoggingEvent loggingEvent)
         {
             var writer = Console.Out;
-            var originalColor = Console.ForegroundColor;
 
-            // Colore per il livello di log
-            if (_levelColors.TryGetValue(loggingEvent.Level, out var levelColor))
+            var originalFore = Console.ForegroundColor;
+            var originalBack = Console.BackgroundColor;
+
+            // Colore di default per il livello
+            if (_levelColors.TryGetValue(loggingEvent.Level, out var colors))
             {
-                Console.ForegroundColor = levelColor;
+                Console.ForegroundColor = colors.Fore;
+                if (colors.Back != default)
+                    Console.BackgroundColor = colors.Back;
             }
 
             var message = RenderLoggingEvent(loggingEvent);
-            WriteWithHighlights(message, writer, originalColor);
+            WriteWithHighlights(message, writer, originalFore, originalBack);
 
-            Console.ForegroundColor = originalColor;
+            Console.ForegroundColor = originalFore;
+            Console.BackgroundColor = originalBack;
         }
 
-        private void WriteWithHighlights(string message, TextWriter writer, ConsoleColor defaultColor)
+        private void WriteWithHighlights(string message, TextWriter writer, ConsoleColor defaultFore, ConsoleColor defaultBack)
         {
             int currentIndex = 0;
 
@@ -67,7 +85,7 @@ namespace DBDataLibrary.Extensions
             var matches = _highlightKeywords
                 .SelectMany(kvp => kvp.Pattern.Matches(message)
                     .Cast<Match>()
-                    .Select(m => (Index: m.Index, Length: m.Length, Color: kvp.Color)))
+                    .Select(m => (Index: m.Index, Length: m.Length, Fore: kvp.Fore, Back: kvp.Back)))
                 .OrderBy(m => m.Index)
                 .ToList();
 
@@ -78,10 +96,17 @@ namespace DBDataLibrary.Extensions
                     writer.Write(message.Substring(currentIndex, match.Index - currentIndex));
                 }
 
-                var prevColor = Console.ForegroundColor;
-                Console.ForegroundColor = match.Color;
+                var prevFore = Console.ForegroundColor;
+                var prevBack = Console.BackgroundColor;
+
+                Console.ForegroundColor = match.Fore != default ? match.Fore : defaultFore;
+                if (match.Back != default)
+                    Console.BackgroundColor = match.Back;
+
                 writer.Write(message.Substring(match.Index, match.Length));
-                Console.ForegroundColor = prevColor;
+
+                Console.ForegroundColor = prevFore;
+                Console.BackgroundColor = prevBack;
 
                 currentIndex = match.Index + match.Length;
             }
@@ -90,10 +115,14 @@ namespace DBDataLibrary.Extensions
             {
                 writer.Write(message.Substring(currentIndex));
             }
+        }
 
-            //writer.WriteLine();
+        private ConsoleColor ParseConsoleColor(string colorName)
+        {
+            if (string.IsNullOrWhiteSpace(colorName))
+                return default;
+
+            return Enum.TryParse(colorName, true, out ConsoleColor color) ? color : default;
         }
     }
-
-
 }

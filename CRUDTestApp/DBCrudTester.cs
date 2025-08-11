@@ -51,6 +51,14 @@ namespace CRUDTestApp
 
             try
             {
+                log.Debug($"DEBUG");
+                log.Info("INFO");
+                log.Warn("WARN");
+                log.Error("ERROR");
+                log.Fatal("FATAL");
+                log.Info($"");
+                log.Info($"{baseLogMessage} Starting CRUD tests...");
+
                 CacheRefreshScheduler.Start(conn, log, TimeSpan.FromSeconds(10), "AutoCacheRefresh");
 
                 conn.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
