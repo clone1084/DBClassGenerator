@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DBDataLibrary.DbUtils
+namespace DBDataLibrary.Utils
 {    public static class DbCommandHelper
     {
         public static void AddParameters(IDbCommand command, Dictionary<string, object?> parameters)

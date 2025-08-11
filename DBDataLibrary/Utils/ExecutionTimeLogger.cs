@@ -14,6 +14,7 @@ namespace DBDataLibrary.Utils
 
         private bool _disposed = false;
         private Exception? _capturedException;
+        DateTime dtStart;
 
         public ExecutionTimerLogger(ILog log, string message, LogLevel logLevel = LogLevel.Info, bool logOnDispose = true)
         {
@@ -22,10 +23,11 @@ namespace DBDataLibrary.Utils
             _logLevel = logLevel;
             _logOnDispose = logOnDispose;
 
+            dtStart = DateTime.Now;
             _stopwatch = Stopwatch.StartNew();
             
-            if(logOnDispose)
-                Log($"{_message} - started...");
+            //if(logOnDispose)
+            //    Log($"{_message} - started...");
         }
 
         public void Dispose()
@@ -39,11 +41,11 @@ namespace DBDataLibrary.Utils
 
             if (_capturedException != null)
             {
-                Log($"{_message} - failed after {duration}", _capturedException);
+                Log($"{_message}: failed after {duration}", _capturedException);
             }
             else if (_logOnDispose)
-            {
-                Log($"{_message} - completed in {duration}");
+            {                
+                Log($"{_message}: started at [{dtStart.ToString("u")}] completed in {duration}");
             }
 
             _disposed = true;

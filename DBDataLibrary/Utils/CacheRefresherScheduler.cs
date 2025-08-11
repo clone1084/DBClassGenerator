@@ -11,7 +11,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DBDataLibrary.DbUtils
+namespace DBDataLibrary.Utils
 {
     public class CacheBootstrapper
     {

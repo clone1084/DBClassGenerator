@@ -23,7 +23,7 @@ namespace DBDataLibrary.Extensions
         // Colori per livelli di log
         private static readonly Dictionary<Level, ConsoleColor> _levelColors = new()
         {
-            [Level.Debug] = ConsoleColor.Green,
+            [Level.Debug] = ConsoleColor.Gray,
             [Level.Info] = ConsoleColor.White,
             [Level.Warn] = ConsoleColor.Yellow,
             [Level.Error] = ConsoleColor.Red,
@@ -32,10 +32,15 @@ namespace DBDataLibrary.Extensions
 
         // Colori per parole chiave nel messaggio
         private static readonly List<(Regex Pattern, ConsoleColor Color)> _highlightKeywords = new()
-    {
-        (new Regex(@"\bOK\b", RegexOptions.IgnoreCase), ConsoleColor.Green),
-        (new Regex(@"\bKO\b", RegexOptions.IgnoreCase), ConsoleColor.Red)
-    };
+        {
+            (new Regex(@"\bOK\b", RegexOptions.IgnoreCase), ConsoleColor.Green),
+            (new Regex(@"\bsuccess\b", RegexOptions.IgnoreCase), ConsoleColor.Green),
+
+            (new Regex(@"\bKO\b", RegexOptions.IgnoreCase), ConsoleColor.Red),
+            (new Regex(@"\bfail\b", RegexOptions.IgnoreCase), ConsoleColor.Red),
+            (new Regex(@"\bfailed\b", RegexOptions.IgnoreCase), ConsoleColor.Red),
+            (new Regex(@"\berror\b", RegexOptions.IgnoreCase), ConsoleColor.Red),
+        };
 
         protected override void Append(LoggingEvent loggingEvent)
         {

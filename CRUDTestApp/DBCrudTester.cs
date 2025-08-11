@@ -1,6 +1,6 @@
 ﻿using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
-using DBDataLibrary.DbUtils;
+using DBDataLibrary.Utils;
 using DBDataLibrary.Tables;
 using log4net;
 using System;
@@ -41,13 +41,13 @@ namespace CRUDTestApp
 
             if (string.IsNullOrEmpty(connectionString))
             {
-                LogError("Connection string is not provided. Use -cs to specify it.");
+                log.Error("Connection string is not provided. Use -cs to specify it.");
                 return;
             }
 
             using var conn = new Oracle.ManagedDataAccess.Client.OracleConnection(connectionString);
             conn.Open();
-            LogInfo($"Connected to database with connection string: {connectionString}");
+            log.Info($"Connected to database with connection string: {connectionString}");
 
             try
             {
@@ -55,22 +55,18 @@ namespace CRUDTestApp
 
                 conn.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
                 log.Info($"{baseLogMessage} Transaction started.");
-                LogInfo("Transaction started. All operations will be rolled back at the end.");
 
                 ManualTest(conn, log, baseLogMessage);
                 ManualTest2(conn, log, baseLogMessage);
 
                 //AutomaticTestOfAllClasses(conn, log, baseLogMessage);
 
-                LogInfo();
-                LogInfo("All tests completed.");
                 log.Info("All tests completed.");
             }
             finally
             {
                 conn.Rollback();
-                LogInfo("DB rolled back");
-                LogInfo();
+                log.Info("DB rolled back");
                 CacheRefreshScheduler.Stop();
             }
         }
@@ -93,32 +89,32 @@ namespace CRUDTestApp
 
             //DateTime start = DateTime.Now;
             //LogResult(mov.Insert(conn, log, baseLogMessage), "    ManualInsert MfcConvMovements");
-            //LogInfo($"OID: {mov.Oid}, DT_INSERT: {mov.DtInsert}");
+            //log.Info($"OID: {mov.Oid}, DT_INSERT: {mov.DtInsert}");
             log.Info($"Insert: {(mov.Insert(conn, log, baseLogMessage) ? "OK" : "KO")} at DT_INSERT: {mov.DtInsert}");
-            //LogWarning($"Insert took {(DateTime.Now - start).TotalMilliseconds:N2} ms");
+            //log.Warn($"Insert took {(DateTime.Now - start).TotalMilliseconds:N2} ms");
 
             mov.ActualType = 6;
             mov.ActualPar1 = 2002;
             
             //start = DateTime.Now;
             //LogResult(mov.Update(conn, log, baseLogMessage), "    ManualUpdate ManToCom");
-            //LogInfo($"DtUpdated: {mov.DtUpdate}");
+            //log.Info($"DtUpdated: {mov.DtUpdate}");
             log.Info($"Update: {(mov.Update(conn, log, baseLogMessage) ? "OK" : "KO")} at DT_UPDATE: {mov.DtUpdate}");
-            //LogWarning($"Update took {(DateTime.Now - start).TotalMilliseconds:N2} ms");
+            //log.Warn($"Update took {(DateTime.Now - start).TotalMilliseconds:N2} ms");
 
             //start = DateTime.Now;
             MfcConvMovements mov2 = MfcConvMovements.Get(conn, log, baseLogMessage, x => x.Oid == mov.Oid);
-            //LogWarning($"ManualLoad took {(DateTime.Now - start).TotalMilliseconds:N2} ms");
+            //log.Warn($"ManualLoad took {(DateTime.Now - start).TotalMilliseconds:N2} ms");
             //LogResult(mov2 != null, "    ManualLoad ManToCom");
             //LogResult(mov2 != null && mov2.Oid == mov.Oid, "ManualLoad have the same OID of ManualInsert");
-            //LogInfo($"DB Loaded actual position: {mov2.ActualPar1} DtUpdate: {mov2.DtUpdate}");
+            //log.Info($"DB Loaded actual position: {mov2.ActualPar1} DtUpdate: {mov2.DtUpdate}");
             log.Info($"Get: {(mov2 != null? "OK" : "KO")} at DT_UPDATE: {mov2.DtUpdate}");
 
             //start = DateTime.Now;
             var allMtc = MfcConvMovements.GetMany(conn, log, baseLogMessage);
-            ////LogWarning($"ManualLoadAll took {(DateTime.Now - start).TotalMilliseconds:N2} ms");
+            ////log.Warn($"ManualLoadAll took {(DateTime.Now - start).TotalMilliseconds:N2} ms");
             //LogResult(allMtc?.Count() != 0, "    ManualLoadAll MfcConvMovements");
-            //LogInfo($"Loaded {allMtc?.Count()} MfcConvManToCom records from DB");
+            //log.Info($"Loaded {allMtc?.Count()} MfcConvManToCom records from DB");
             log.Info($"GetMany: {(allMtc?.Count() != 0 ? "OK" : "KO")}");
 
             //LogResult(mov.Delete(conn, log, baseLogMessage), "    ManualDelete ManToCom");
@@ -143,7 +139,7 @@ namespace CRUDTestApp
                 [":cdItemFrom"] = "1001",
             };
             int maxCount = 10;
-            LogInfo($"Looping {maxCount} for extended test...");
+            log.Info($"Looping {maxCount} for extended test...");
             while (i < maxCount)
             {
                 i++;
@@ -154,14 +150,14 @@ namespace CRUDTestApp
                     var dbRouting = MfcConvRouting.GetMany(conn, log, baseLogMessage, ignoreCache: true);
                     var ts = (DateTime.Now - dtStart);
                     dbLoadAll.Add(ts);
-                    //LogInfo($"DB GetMany [{dbRouting.Count()}] took {ts.TotalMilliseconds:N2} ms");
+                    //log.Info($"DB GetMany [{dbRouting.Count()}] took {ts.TotalMilliseconds:N2} ms");
                 }
                 {
                     var dtStart = DateTime.Now;
                     var dbRouting = MfcConvRouting.GetMany(conn, log, baseLogMessage, x => x.CdItemFrom == "1001", ignoreCache: true);
                     var ts = (DateTime.Now - dtStart);
                     dbLoadAll1001Linq.Add(ts);
-                    //LogInfo($"DB GetMany 1001 LINQ [{dbRouting.Count()}] took {ts.TotalMilliseconds:N2} ms");
+                    //log.Info($"DB GetMany 1001 LINQ [{dbRouting.Count()}] took {ts.TotalMilliseconds:N2} ms");
                 }
                 {
                     var dtStart = DateTime.Now;
@@ -169,14 +165,14 @@ namespace CRUDTestApp
                     //var dbRouting = MfcConvRouting.GetMany(conn, log, baseLogMessage, "CD_ITEM_FROM = 1001");
                     var ts = (DateTime.Now - dtStart);
                     dbLoadAll1001Sql.Add(ts);
-                    //LogInfo($"DB GetMany 1001 SQL [{dbRouting.Count()}] took {ts.TotalMilliseconds:N2} ms");
+                    //log.Info($"DB GetMany 1001 SQL [{dbRouting.Count()}] took {ts.TotalMilliseconds:N2} ms");
                 }
                 {
                     var dtStart = DateTime.Now;
                     MfcConvRouting dbRouting = MfcConvRouting.Get(conn, log, baseLogMessage, x => x.CdItemFrom == "1001", true);
                     var ts = (DateTime.Now - dtStart);
                     dbLoad1001.Add(ts);
-                    //LogInfo($"DB Get 1001 took {ts.TotalMilliseconds:N2} ms");
+                    //log.Info($"DB Get 1001 took {ts.TotalMilliseconds:N2} ms");
                 }
 
                 // Cache
@@ -185,33 +181,33 @@ namespace CRUDTestApp
                     var cacheRouting = MfcConvRouting.GetMany(conn, log, baseLogMessage); 
                     var ts = (DateTime.Now - dtStart);
                     cacheLoadAll.Add(ts);
-                    //LogInfo($"Cache GetMany [{dbRouting.Count()}] took {ts.TotalMilliseconds:N2} ms");
+                    //log.Info($"Cache GetMany [{dbRouting.Count()}] took {ts.TotalMilliseconds:N2} ms");
                 }
                 {
                     var dtStart = DateTime.Now;
                     var cacheRouting = MfcConvRouting.GetMany(conn, log, baseLogMessage, x => x.CdItemFrom == "1001");
                     var ts = (DateTime.Now - dtStart);
                     cacheLoadAll1001.Add(ts);
-                    //LogInfo($"Cache GetMany 1001 [{dbRouting.Count()}] took {ts.TotalMilliseconds:N2} ms");
+                    //log.Info($"Cache GetMany 1001 [{dbRouting.Count()}] took {ts.TotalMilliseconds:N2} ms");
                 }
                 {
                     var dtStart = DateTime.Now;
                     MfcConvRouting cacheRouting = MfcConvRouting.Get(conn, log, baseLogMessage, x => x.CdItemFrom == "1001");
                     var ts = (DateTime.Now - dtStart);
                     cacheLoad1001.Add(ts);
-                    //LogInfo($"Cache Get 1001 took {ts.TotalMilliseconds:N2} ms");
+                    //log.Info($"Cache Get 1001 took {ts.TotalMilliseconds:N2} ms");
                 }
             }
 
-            LogInfo($"Summary of Get Tests:");
-            LogInfo($"Source            | Min        | Max        | Avg        ");
-            LogInfo($"DB GetMany        | {dbLoadAll.Min().TotalMilliseconds,7:N2} ms | {dbLoadAll.Max().TotalMilliseconds,7:N2} ms | {dbLoadAll.Average(x => x.TotalMilliseconds),7:N2} ms");
-            LogInfo($"DB GetMany 1001   | {dbLoadAll1001Linq.Min().TotalMilliseconds,7:N2} ms | {dbLoadAll1001Linq.Max().TotalMilliseconds,7:N2} ms | {dbLoadAll1001Linq.Average(x => x.TotalMilliseconds),7:N2} ms");
-            LogInfo($"DB GetMany 1001SQL| {dbLoadAll1001Sql.Min().TotalMilliseconds,7:N2} ms | {dbLoadAll1001Sql.Max().TotalMilliseconds,7:N2} ms | {dbLoadAll1001Sql.Average(x => x.TotalMilliseconds),7:N2} ms");
-            LogInfo($"DB Get 1001       | {dbLoad1001.Min().TotalMilliseconds,7:N2} ms | {dbLoad1001.Max().TotalMilliseconds,7:N2} ms | {dbLoad1001.Average(x => x.TotalMilliseconds),7:N2} ms");
-            LogInfo($"Cache GetMany     | {cacheLoadAll.Min().TotalMilliseconds,7:N2} ms | {cacheLoadAll.Max().TotalMilliseconds,7:N2} ms | {cacheLoadAll.Average(x => x.TotalMilliseconds),7:N2} ms");
-            LogInfo($"Cache GetMany 1001| {cacheLoadAll1001.Min().TotalMilliseconds,7:N2} ms | {cacheLoadAll1001.Max().TotalMilliseconds,7:N2} ms | {cacheLoadAll1001.Average(x => x.TotalMilliseconds),7:N2} ms");
-            LogInfo($"Cache Get 1001    | {cacheLoad1001.Min().TotalMilliseconds,7:N2} ms | {cacheLoad1001.Max().TotalMilliseconds,7:N2} ms | {cacheLoad1001.Average(x => x.TotalMilliseconds),7:N2} ms");
+            log.Info($"Summary of Get Tests:");
+            log.Info($"Source            | Min        | Max        | Avg        ");
+            log.Info($"DB GetMany        | {dbLoadAll.Min().TotalMilliseconds,7:N2} ms | {dbLoadAll.Max().TotalMilliseconds,7:N2} ms | {dbLoadAll.Average(x => x.TotalMilliseconds),7:N2} ms");
+            log.Info($"DB GetMany 1001   | {dbLoadAll1001Linq.Min().TotalMilliseconds,7:N2} ms | {dbLoadAll1001Linq.Max().TotalMilliseconds,7:N2} ms | {dbLoadAll1001Linq.Average(x => x.TotalMilliseconds),7:N2} ms");
+            log.Info($"DB GetMany 1001SQL| {dbLoadAll1001Sql.Min().TotalMilliseconds,7:N2} ms | {dbLoadAll1001Sql.Max().TotalMilliseconds,7:N2} ms | {dbLoadAll1001Sql.Average(x => x.TotalMilliseconds),7:N2} ms");
+            log.Info($"DB Get 1001       | {dbLoad1001.Min().TotalMilliseconds,7:N2} ms | {dbLoad1001.Max().TotalMilliseconds,7:N2} ms | {dbLoad1001.Average(x => x.TotalMilliseconds),7:N2} ms");
+            log.Info($"Cache GetMany     | {cacheLoadAll.Min().TotalMilliseconds,7:N2} ms | {cacheLoadAll.Max().TotalMilliseconds,7:N2} ms | {cacheLoadAll.Average(x => x.TotalMilliseconds),7:N2} ms");
+            log.Info($"Cache GetMany 1001| {cacheLoadAll1001.Min().TotalMilliseconds,7:N2} ms | {cacheLoadAll1001.Max().TotalMilliseconds,7:N2} ms | {cacheLoadAll1001.Average(x => x.TotalMilliseconds),7:N2} ms");
+            log.Info($"Cache Get 1001    | {cacheLoad1001.Min().TotalMilliseconds,7:N2} ms | {cacheLoad1001.Max().TotalMilliseconds,7:N2} ms | {cacheLoad1001.Average(x => x.TotalMilliseconds),7:N2} ms");
         }
 
         private void AutomaticTestOfAllClasses(Oracle.ManagedDataAccess.Client.OracleConnection conn, log4net.ILog log, string baseLogMessage)
@@ -228,7 +224,7 @@ namespace CRUDTestApp
                     t.BaseType.GetGenericTypeDefinition() == baseType)
                 .ToList();
 
-            LogInfo($"Found {typesToTest.Count} tables to test");
+            log.Info($"Found {typesToTest.Count} tables to test");
 
             Console.Write("Proceed? (Y/N): ");
             var proceed = Console.ReadLine()?.Trim().ToUpper();
@@ -247,7 +243,7 @@ namespace CRUDTestApp
                 {
                     dynamic crudInstance = Activator.CreateInstance(type)!;
 
-                    LogInfo($"[{count++}/{typesToTest.Count}] {type.Name} [{crudInstance.TableName}]:", ConsoleColor.White);
+                    log.Info($"[{count++}/{typesToTest.Count}] {type.Name} [{crudInstance.TableName}]:");
 
                     // GET THE CUSTOM ATTRIBUTE
                     // Assuming the TableTypes attribute is defined on the class itself
@@ -256,13 +252,13 @@ namespace CRUDTestApp
 
                     if (tableTypeAttribute == null)
                     {
-                        LogWarning($"    Skipping {type.Name}: No TableTypes attribute found.");
+                        log.Warn($"    Skipping {type.Name}: No TableTypes attribute found.");
                         continue;
                     }
 
                     TableTypes tableType = tableTypeAttribute.TableType;
 
-                    Log2Colors($"    TableType", $"{tableType}", secondColor: ConsoleColor.White);
+                    log.Info($"    TableType: {tableType}");
 
                     // CONDITIONAL EXECUTION BASED ON ATTRIBUTE FLAGS
 
@@ -281,7 +277,7 @@ namespace CRUDTestApp
                 }
                 catch (Exception ex)
                 {
-                    LogError($"    Error testing {type.Name}: {(ex.InnerException != null ? ex.InnerException.Message : ex.Message)}");
+                    log.Error($"    Error testing {type.Name}: {(ex.InnerException != null ? ex.InnerException.Message : ex.Message)}");
                 }
             }
         }
@@ -291,11 +287,11 @@ namespace CRUDTestApp
             try
             {
                 bool deleted = crudInstance.Delete(conn, log, baseLogMessage);
-                LogResult(deleted, "    Delete");
+                log.Info($"    Delete {(deleted? "OK": "KO")}");
             }
             catch (Exception ex)
             {
-                Log2Colors($"    Delete", ex.Message);
+                log.Error($"    Delete: {ex.Message}", ex);
             }
         }
 
@@ -304,7 +300,8 @@ namespace CRUDTestApp
             try
             {
                 bool inserted = crudInstance.Insert(conn, log, baseLogMessage);
-                LogResult(inserted, $"    Insert");
+                log.Info($"    Insert {(inserted ? "OK" : "KO")}");
+
                 if (inserted)
                 {
                     Dictionary<string, object> kvp = crudInstance.GetKeyValues();
@@ -312,12 +309,12 @@ namespace CRUDTestApp
                     {
                         return $"{k.Key} = {k.Value}";
                     }));
-                    LogInfo($"      -Inserted {type.Name}: {keys}");
+                    log.Info($"      -Inserted {type.Name}: {keys}");
                 }
             }
             catch (Exception ex)
             {
-                Log2Colors($"    Insert", ex.Message);
+                log.Error($"    Insert: {ex.Message}", ex);
             }
         }
 
@@ -338,12 +335,12 @@ namespace CRUDTestApp
                 {
                     modProp.SetValue(crudInstance, "TestValue");
                     bool updated = crudInstance.Update(conn, log, baseLogMessage);
-                    LogResult(updated, "    Update");
+                    log.Info($"    Update {(updated ? "OK" : "KO")}");
                 }
             }
             catch (Exception ex)
             {
-                Log2Colors($"    Update", ex.Message);
+                log.Info($"    Update: {ex.Message}", ex);
             }
         }
 
@@ -361,12 +358,12 @@ namespace CRUDTestApp
                     DateTime dtStart = DateTime.Now;
                     var result = method.Invoke(null, new object[] { conn, log, baseLogMessage }); // second param is whereFilter, third parameter il cache loading
                     var loadedList = ((IEnumerable<object>)result)?.ToList();
-                    LogResult(loadedList?.Count ?? 0, "    Get");
-                    LogInfo($"    GetMany took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
+                    log.Info($"    GetMany {(loadedList?.Count == 0? "KO" : "OK")}");
+                    log.Info($"    GetMany took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
                 }
                 else
                 {
-                    LogWarning($"    GetMany not found for type {type.Name}");
+                    log.Warn($"    GetMany not found for type {type.Name}");
                 }
 
                 // CACHED Table test
@@ -378,8 +375,8 @@ namespace CRUDTestApp
                         DateTime dtStart = DateTime.Now;
                         var result = method.Invoke(null, new object[] { conn, log, baseLogMessage }); // carico dalla cache
                         var loadedList = ((IEnumerable<object>)result)?.ToList();
-                        LogResult(loadedList?.Count ?? 0, "    CacheLoad");
-                        LogInfo($"    CacheLoad took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
+                        log.Info($"    CacheLoad {(loadedList?.Count == 0 ? "KO" : "OK")}");
+                        log.Info($"    CacheLoad took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
 
                         // Provo un reload della cache
                         var loadCacheMethod = methods.FirstOrDefault(x => x.Name == "LoadCache");
@@ -387,99 +384,99 @@ namespace CRUDTestApp
                         result = loadCacheMethod.Invoke(null, new object[] { conn, log, baseLogMessage}); // ricarico la cache
                         result = method.Invoke(null, new object[] { conn, log, baseLogMessage }); // carico dalla cache
                         loadedList = ((IEnumerable<object>)result)?.ToList();
-                        LogResult(loadedList?.Count ?? 0, "    CacheReLoad");
-                        LogInfo($"    CacheReLoad took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
+                        log.Info($"    CacheReLoad {(loadedList?.Count == 0 ? "KO" : "OK")}");
+                        log.Info($"    CacheReLoad took {(DateTime.Now - dtStart).TotalMilliseconds:N2} ms");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Log2Colors($"    Get", ex.Message);
+                log.Error($"    GetMany: {ex.Message}", ex);
             }
         }
 
 
-        private void LogTime()
-        {
-            Console.ForegroundColor = ConsoleColor.Gray;
-            Console.Write($"[{DateTime.Now:yyyy/MM/dd-HH:mm:ss.fff}] ");
-            Console.ResetColor();
-        }
+        //private void LogTime()
+        //{
+        //    Console.ForegroundColor = ConsoleColor.Gray;
+        //    Console.Write($"[{DateTime.Now:yyyy/MM/dd-HH:mm:ss.fff}] ");
+        //    Console.ResetColor();
+        //}
 
-        private void Log2Colors(string firstColotText, string secondColorText, 
-            ConsoleColor firstColor = ConsoleColor.Gray, 
-            ConsoleColor secondColor = ConsoleColor.Yellow)
-        {
-            LogTime();
-            Console.ResetColor(); 
-            Console.ForegroundColor = firstColor;
-            Console.Write($"[INFO]  {firstColotText} : ");
-            Console.ForegroundColor = secondColor;            
-            Console.WriteLine(secondColorText);
-            Console.ResetColor();
-        }
+        //private void log.Info(string firstColotText, string secondColorText, 
+        //    ConsoleColor firstColor = ConsoleColor.Gray, 
+        //    ConsoleColor secondColor = ConsoleColor.Yellow)
+        //{
+        //    LogTime();
+        //    Console.ResetColor(); 
+        //    Console.ForegroundColor = firstColor;
+        //    Console.Write($"[INFO]  {firstColotText} : ");
+        //    Console.ForegroundColor = secondColor;            
+        //    Console.WriteLine(secondColorText);
+        //    Console.ResetColor();
+        //}
 
-        private void LogResult(int number, string operation)
-        {
-            LogTime();
-            Console.ResetColor();
-            Console.ForegroundColor = ConsoleColor.White;
-            if (number > 0)
-            {
-                Console.Write($"[INFO]  {operation} : ");
-                Console.ForegroundColor = ConsoleColor.Green;
-            }
-            else
-            {
-                Console.Write($"[INFO]  {operation} : ");
-                Console.ForegroundColor = ConsoleColor.Red;
-            }
-            Console.WriteLine(number);
-            Console.ResetColor();
-        }
+        //private void LogResult(int number, string operation)
+        //{
+        //    LogTime();
+        //    Console.ResetColor();
+        //    Console.ForegroundColor = ConsoleColor.White;
+        //    if (number > 0)
+        //    {
+        //        Console.Write($"[INFO]  {operation} : ");
+        //        Console.ForegroundColor = ConsoleColor.Green;
+        //    }
+        //    else
+        //    {
+        //        Console.Write($"[INFO]  {operation} : ");
+        //        Console.ForegroundColor = ConsoleColor.Red;
+        //    }
+        //    Console.WriteLine(number);
+        //    Console.ResetColor();
+        //}
 
-        private void LogResult(bool result, string operation)
-        {
-            LogTime();
-            Console.ResetColor();
-            Console.ForegroundColor = ConsoleColor.White;
-            if (result)
-            {
-                Console.Write($"[INFO]  {operation} : ");
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine("OK");
-                Console.ResetColor();
-            }
-            else
-            {
-                Console.Write($"[ERROR] {operation} : ");
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Failed");
-                Console.ResetColor();
-            }
-        }
+        //private void LogResult(bool result, string operation)
+        //{
+        //    LogTime();
+        //    Console.ResetColor();
+        //    Console.ForegroundColor = ConsoleColor.White;
+        //    if (result)
+        //    {
+        //        Console.Write($"[INFO]  {operation} : ");
+        //        Console.ForegroundColor = ConsoleColor.Green;
+        //        Console.WriteLine("OK");
+        //        Console.ResetColor();
+        //    }
+        //    else
+        //    {
+        //        Console.Write($"[ERROR] {operation} : ");
+        //        Console.ForegroundColor = ConsoleColor.Red;
+        //        Console.WriteLine("Failed");
+        //        Console.ResetColor();
+        //    }
+        //}
 
-        private void LogColor(string message, ConsoleColor txtColor = ConsoleColor.Gray)
-        {
-            LogTime();
-            Console.ForegroundColor = txtColor;
-            Console.WriteLine($"{message}");
-            Console.ResetColor();
-        }
+        //private void LogColor(string message, ConsoleColor txtColor = ConsoleColor.Gray)
+        //{
+        //    LogTime();
+        //    Console.ForegroundColor = txtColor;
+        //    Console.WriteLine($"{message}");
+        //    Console.ResetColor();
+        //}
 
-        private void LogInfo(string message = "", ConsoleColor txtColor = ConsoleColor.White)
-        {
-            LogColor($"[INFO]  {message}", txtColor);
-        }
+        //private void log.Info(string message = "", ConsoleColor txtColor = ConsoleColor.White)
+        //{
+        //    LogColor($"[INFO]  {message}", txtColor);
+        //}
 
-        private void LogError(string message)
-        {
-            LogColor($"[ERROR] {message}", ConsoleColor.Red);
-        }
+        //private void log.Error(string message)
+        //{
+        //    LogColor($"[ERROR] {message}", ConsoleColor.Red);
+        //}
 
-        private void LogWarning(string message)
-        {
-            LogColor($"[WARN]  {message}", ConsoleColor.Yellow);
-        }
+        //private void log.Warn(string message)
+        //{
+        //    LogColor($"[WARN]  {message}", ConsoleColor.Yellow);
+        //}
     }
 }
