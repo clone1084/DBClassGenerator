@@ -47,13 +47,16 @@ namespace DBDataLibrary.Extensions
         {
             if (!string.IsNullOrWhiteSpace(mapping?.StringToMatch))
             {
+                // Match della keyword ovunque nella parola, ma evidenzia l'intera parola
+                var regex = new Regex(@"\b\w*" + Regex.Escape(mapping.StringToMatch) + @"\w*\b", RegexOptions.IgnoreCase);
                 _highlightKeywords.Add((
-                    new Regex(Regex.Escape(mapping.StringToMatch), RegexOptions.IgnoreCase),
+                    regex,
                     ParseConsoleColor(mapping.ForeColor),
                     ParseConsoleColor(mapping.BackColor)
                 ));
             }
         }
+
 
         protected override void Append(LoggingEvent loggingEvent)
         {
