@@ -1,11 +1,8 @@
 ﻿using DBDataLibrary.Attributes;
 using DBDataLibrary.Utils;
-using DBDataLibrary.Utils;
 using log4net;
 using System.Collections.Concurrent;
 using System.Data;
-using System.Data.Common;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -176,18 +173,18 @@ namespace DBDataLibrary.CRUD
 
         public bool Insert(IDbConnection connection, ILog log, string baseLogMessage)
         {
-            baseLogMessage += $"{typeof(TClass).Name}.Insert: ";
+            baseLogMessage += $"{typeof(TClass).Name}.{nameof(Insert)}: ";
 
             if (HasTableTypeFlag(TableTypes.ReadOnly))
             {
-                log.Error($"{baseLogMessage} - Insert operation is not allowed! Table '{typeof(TClass).Name}' is marked as ReadOnly.");
-                throw new InvalidOperationException($"Insert is not allowed! Table '{typeof(TClass).Name}' is marked as ReadOnly.");
+                log.Error($"{baseLogMessage}Operation is not allowed! Table '{TableName}' is marked as ReadOnly.");
+                throw new InvalidOperationException($"Insert is not allowed! Table '{TableName}' is marked as ReadOnly.");
             }
 
             if (!HasTableTypeFlag(TableTypes.Insertable))
             {
-                log.Error($"{baseLogMessage} - Insert operation is not allowed for table type '{typeof(TClass).Name}'.");
-                throw new InvalidOperationException($"Insert is not allowed for table type '{typeof(TClass).Name}'.");
+                log.Error($"{baseLogMessage}Operation is not allowed for table type '{TableName}'.");
+                throw new InvalidOperationException($"Insert is not allowed for table type '{TableName}'.");
             }
 
             using (ExecutionTimerLogger etl = new ExecutionTimerLogger(log, baseLogMessage, LogLevel.Debug))
@@ -291,18 +288,18 @@ namespace DBDataLibrary.CRUD
 
         public bool Update(IDbConnection connection, ILog log, string baseLogMessage)
         {
-            baseLogMessage += $"{typeof(TClass).Name}.Update: ";
+            baseLogMessage += $"{typeof(TClass).Name}.{nameof(Update)}: ";
 
             if (HasTableTypeFlag(TableTypes.ReadOnly))
             {
-                log.Error($"{baseLogMessage} - Update operation is not allowed! Table '{typeof(TClass).Name}' is marked as ReadOnly.");
-                throw new InvalidOperationException($"Update is not allowed! Table '{typeof(TClass).Name}' is marked as ReadOnly.");
+                log.Error($"{baseLogMessage}Operation is not allowed! Table '{TableName}' is marked as ReadOnly.");
+                throw new InvalidOperationException($"Update is not allowed! Table '{TableName}' is marked as ReadOnly.");
             }
 
             if (!HasTableTypeFlag(TableTypes.Updatable))
             {
-                log.Error($"{baseLogMessage} - Update operation is not allowed for table type '{typeof(TClass).Name}'.");
-                throw new InvalidOperationException($"Update is not allowed for table type '{typeof(TClass).Name}'.");
+                log.Error($"{baseLogMessage}Operation is not allowed for table type '{TableName}'.");
+                throw new InvalidOperationException($"Update is not allowed for table type '{TableName}'.");
             }
 
             using (ExecutionTimerLogger etl = new ExecutionTimerLogger(log, baseLogMessage, LogLevel.Debug))
@@ -325,7 +322,7 @@ namespace DBDataLibrary.CRUD
                     var keyProps = GetKeyProperties();
                     if (!keyProps.Any())
                     {
-                        log.Error($"{baseLogMessage} - No [Key] properties found for update operation in table '{typeof(TClass).Name}'.");
+                        log.Error($"{baseLogMessage}No [Key] properties found for update operation in table '{TableName}'.");
                         throw new InvalidOperationException("No [Key] properties found for update.");
                     }
 
@@ -439,18 +436,18 @@ namespace DBDataLibrary.CRUD
 
         public bool Delete(IDbConnection connection, ILog log, string baseLogMessage)
         {
-            baseLogMessage += $"{typeof(TClass).Name}.Delete: ";
+            baseLogMessage += $"{typeof(TClass).Name}.{nameof(Delete)}: ";
 
             if (HasTableTypeFlag(TableTypes.ReadOnly))
             {
-                log.Error($"{baseLogMessage} - Delete operation is not allowed! Table '{typeof(TClass).Name}' is marked as ReadOnly.");
-                throw new InvalidOperationException($"Delete is not allowed! Table '{typeof(TClass).Name}' is marked as ReadOnly.");
+                log.Error($"{baseLogMessage}Operation is not allowed! Table '{TableName}' is marked as ReadOnly.");
+                throw new InvalidOperationException($"Delete is not allowed! Table '{TableName}' is marked as ReadOnly.");
             }
 
             if (!HasTableTypeFlag(TableTypes.Deletable))
             {
-                log.Error($"{baseLogMessage} - Delete operation is not allowed for table type '{typeof(TClass).Name}'.");
-                throw new InvalidOperationException($"Delete is not allowed for table type '{typeof(TClass).Name}'.");
+                log.Error($"{baseLogMessage}Operation is not allowed for table type '{TableName}'.");
+                throw new InvalidOperationException($"Delete is not allowed for table type '{TableName}'.");
             }
 
             using (ExecutionTimerLogger etl = new ExecutionTimerLogger(log, baseLogMessage, LogLevel.Debug))
@@ -460,7 +457,7 @@ namespace DBDataLibrary.CRUD
                     var keyProps = GetKeyProperties();
                     if (!keyProps.Any())
                     {
-                        log.Error($"{baseLogMessage} - No [Key] properties found for delete operation in table '{typeof(TClass).Name}'.");
+                        log.Error($"{baseLogMessage}No [Key] properties found for delete operation in table '{TableName}'.");
                         throw new InvalidOperationException("No [Key] properties found for delete.");
                     }
 
@@ -508,7 +505,7 @@ namespace DBDataLibrary.CRUD
         /// <returns></returns>
         public static TClass Get(IDbConnection connection, ILog log, string baseLogMessage, Expression<Func<TClass, bool>> whereExpression, bool ignoreCache = false)
         {
-            baseLogMessage += $"{typeof(TClass).Name}.Get: ";
+            baseLogMessage += $"{typeof(TClass).Name}.{nameof(Get)}: ";
             using (ExecutionTimerLogger etl = new ExecutionTimerLogger(log, baseLogMessage, LogLevel.Debug))
             {
                 try
@@ -589,7 +586,7 @@ namespace DBDataLibrary.CRUD
         /// <returns></returns>
         public static IEnumerable<TClass> GetMany(IDbConnection connection, ILog log, string baseLogMessage, Expression<Func<TClass, bool>>? whereExpression = null, bool ignoreCache = false)
         {
-            baseLogMessage += $"{typeof(TClass).Name}.GetMany: ";
+            baseLogMessage += $"{typeof(TClass).Name}.{nameof(GetMany)}: ";
             var resultList = new List<TClass>();
 
             using (ExecutionTimerLogger etl = new ExecutionTimerLogger(log, baseLogMessage, LogLevel.Debug))
@@ -661,7 +658,7 @@ namespace DBDataLibrary.CRUD
         /// <returns></returns>
         public static IEnumerable<TClass> GetMany(IDbConnection connection, ILog log, string baseLogMessage, string whereFilter = "", Dictionary<string, object?>? parameters = null)
         {
-            baseLogMessage += $"{typeof(TClass).Name}.GetMany: ";
+            baseLogMessage += $"{typeof(TClass).Name}.{nameof(GetMany)}: ";
 
             var resultList = new List<TClass>();
 
@@ -709,10 +706,10 @@ namespace DBDataLibrary.CRUD
 
         public void ReLoadCache(IDbConnection connection, ILog log, string baseLogMessage, CancellationToken cancellationToken)
         {
-            baseLogMessage += $" {typeof(TClass).Name}.ReLoadCache: ";
+            baseLogMessage += $"{typeof(TClass).Name}.{nameof(ReLoadCache)}: ";
             if (cancellationToken.IsCancellationRequested)
             {
-                log.Debug($"{baseLogMessage}{TableName}: Cache refresh cancelled.");
+                log.Debug($"{baseLogMessage}[{TableName}] Cache refresh cancelled.");
                 return;
             }
             LoadCache(connection, log, baseLogMessage);
@@ -720,10 +717,10 @@ namespace DBDataLibrary.CRUD
 
         public static void LoadCache(IDbConnection connection, ILog log, string baseLogMessage)
         {
-            baseLogMessage += $" LoadCache for table '{typeof(TClass).Name}': ";
+            baseLogMessage += $"{typeof(TClass).Name}.{nameof(LoadCache)}: ";
             if (!HasTableTypeFlag(TableTypes.Cached))
             {
-                log.Error($"{baseLogMessage} Table '{typeof(TClass).Name}' is not marked as Cached. Cannot load cache.");
+                log.Error($"{baseLogMessage}Table '{typeof(TClass).Name}' is not marked as Cached. Cannot load cache.");
                 throw new InvalidOperationException($"Table '{typeof(TClass).Name}' is not marked as Cached. Cannot load cache.");
             }
 
@@ -732,7 +729,7 @@ namespace DBDataLibrary.CRUD
                 try
                 {
                     _cache.Clear();
-                    log.Debug($"{baseLogMessage} Cache cleared for table '{typeof(TClass).Name}'.");
+                    log.Debug($"{baseLogMessage}Cache cleared for table '{typeof(TClass).Name}'.");
 
                     var sql = $"SELECT * FROM {GetTableName()}";
 

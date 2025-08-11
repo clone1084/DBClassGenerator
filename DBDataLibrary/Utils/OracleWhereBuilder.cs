@@ -1,13 +1,10 @@
 ﻿using DBDataLibrary.Attributes;
-using System;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 
 namespace DBDataLibrary.Utils
 {
-
-
     public class OracleWhereBuilder : ExpressionVisitor
     {
         private StringBuilder _sb = new();

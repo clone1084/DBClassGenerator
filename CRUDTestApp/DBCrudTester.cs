@@ -51,14 +51,14 @@ namespace CRUDTestApp
 
             try
             {
-                log.Debug($"DEBUG - OK");
-                log.Debug($"DEBUG - warning");
-                log.Debug($"DEBUG - FATAL");
-                log.Info("INFO");
-                log.Warn("WARN");
-                log.Error("ERROR");
-                log.Fatal("FATAL");
-                log.Info($"");
+                //log.Debug($"DEBUG - OK");
+                //log.Debug($"DEBUG - warning");
+                //log.Debug($"DEBUG - FATAL");
+                //log.Info("INFO");
+                //log.Warn("WARN");
+                //log.Error("ERROR");
+                //log.Fatal("FATAL");
+                //log.Info($"");
                 log.Info($"{baseLogMessage} Starting CRUD tests...");
 
                 CacheRefreshScheduler.Start(conn, log, TimeSpan.FromSeconds(10), "AutoCacheRefresh");
@@ -66,8 +66,8 @@ namespace CRUDTestApp
                 conn.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
                 log.Info($"{baseLogMessage} Transaction started.");
 
-                //ManualTest(conn, log, baseLogMessage);
-                //ManualTest2(conn, log, baseLogMessage);
+                ManualTest(conn, log, baseLogMessage);
+                ManualTest2(conn, log, baseLogMessage);
 
                 //AutomaticTestOfAllClasses(conn, log, baseLogMessage);
 
