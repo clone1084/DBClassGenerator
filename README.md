@@ -6,7 +6,7 @@ The DBClass generator console app requirest 4 parameters:
 1. -cs <connectionString>: Database connection string like: `"Data Source = (DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=MY_SERVICE)));User ID= MY_USER; Password = MyPwd;"`.
 2. -ns <namespace>: namespace of the generated classes like: `"MyAssembly.Tables"`.
 3. -out <outputDirectory>: directory path for output files like: `C:\MyAssembly\Tables`.
-4. -tn <tableNameFilter>: filter to select only some of the DB tables like: `"%MY_TABLE%"`. If not set the application will generate a class for every table.
+4. *(optional)* -tn <tableNameFilter>: filter to select only some of the DB tables like: `"%MY_TABLE%"`. If not set the application will generate a class for every table.
 
 Usage: `DbDataClassGenerator -cs <connectionString> -ns <namespace> -out <outputDirectory> -tn <tableNameFilter>`
 
@@ -32,18 +32,23 @@ All the generated *.custom.cs classes are partial classes and can be customized 
 ## DBDataLibrary.CRUD.ACrudBase
 Is the core of this DB table access system. It work through reflection and will make use of the generated classes and all the columns and TableType definition.
 
-This is intended to control wich kind of actions are allowed on every table and avoid "possibles" mistake in their common use in the code.
+This is intended to control wich kind of actions are allowed on every table and avoid "possible" mistakes in their common use in the code.
 
 + **Read**: is always available for every table.
   + Get: will return the first element of a query. This uses LINQ `Expression` to create SQL where clauses. In this way we allow the use only of the expected columns and their proper values.
   + GetMany: will return an IEnumerable<TableClass> with all the results of the query. This has 2 versions:
     1. Uses LINQ `Expression` to create SQL where clauses, this may search directly in the cache if it's available and eventually fall back to the DB;
-    2. Uses standard handwritten SQL where clauses and will always request the DB.
-+ **Insert**: must be declared in the `<TABLE_NAME>.define.cs` file.
-+ **Update**: must be declared in the `<TABLE_NAME>.define.cs` file.
-+ **Delete**: must be declared in the `<TABLE_NAME>.define.cs` file.
-+ **Cached**: may be declared in the `<TABLE_NAME>.define.cs` file. This will allow the automatic use of an "in-memory" cache and all the allowed functions will make use of the cache. (Insert, Update and Delete will still commit on the DB too).
+    2. Uses standard handwritten SQL where clauses and will always query the DBMS.
++ **Insert**: is optional.
+  + Must be declared in the `<TABLE_NAME>.define.cs` file to allow the Insert funcion to be used on the table.
++ **Update**: is optional.
+  + Must be declared in the `<TABLE_NAME>.define.cs` file to allow the Update funcion to be used on the table.
++ **Delete**: is optional.
+  + Must be declared in the `<TABLE_NAME>.define.cs` file to allow the Delete funcion to be used on the table.
++ **Cached**: is optional.
+  + May be declared in the `<TABLE_NAME>.define.cs` file to enable the automatic use of an "in-memory" cache and all the allowed functions will make use of the cache. (Insert, Update and Delete will always commit to the DB too).
 
 
 # CrudTestApp
-If AutomaticTestOfAllClasses method is enebled in its Run() method, this will try to execute all the CRUD actions on the table and return the result to check if the `<TABLE_NAME>.define.cs` files are decorated as expected.
+If AutomaticTestOfAllClasses method is enebled in its Run() method, this will try to execute all the CRUD actions on the table and return the result to check if the `<TABLE_NAME>.define.cs` files are decorated as expected. 
+*(Still under development)*
