@@ -1,7 +1,11 @@
+# DbDataLibrary
+
+Is the actual working library that must be included in the final project that needs CRUD access to the DBMS tables.
+
 # DbDataClassGenerator
 
-This project will allow the user to create CRUD classes starting from an Oracle DataBase table set.
-The DBClass generator console app requirest 4 parameters:
+This project will allow the user to **automatically** create CRUD classes starting from an Oracle DataBase table set using DBDataLibrary as a CRUD template.
+The DBClass generator console app requirest 3 parameters + 1 optional parameter:
 
 1. -cs <connectionString>: Database connection string like: `"Data Source = (DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=MY_SERVICE)));User ID= MY_USER; Password = MyPwd;"`.
 2. -ns <namespace>: namespace of the generated classes like: `"MyAssembly.Tables"`.
@@ -11,26 +15,33 @@ The DBClass generator console app requirest 4 parameters:
 Usage: `DbDataClassGenerator -cs <connectionString> -ns <namespace> -out <outputDirectory> -tn <tableNameFilter>`
 
 The application will create 3 files for each table:
-1. <TABLE_NAME>.table.cs
-2. <TABLE_NAME>.define.cs
-3. <TABLE_NAME>.custom.cs
+### 1. **<TABLE_NAME>.table.cs**     
+  > [!IMPORTANT]
+  > All the generated *.table.cs classes will derive from `DBDataLibrary.CRUD.ACrudBase` to implement all the expected base functions and will have only the columns definition found in the table.
+  > 
+  > <ins>This file must never be customized, a new execution will overwrite the file and all it's content.</ins>
 
-### *.table.cs
-All the generated *.table.cs classes will derive from `DBDataLibrary.CRUD.ACrudBase` to implement all the expected base functions and will have only the columns definition found in the table.
->**This files must not be customized, a new execution will overwrite the file and all it's content.**
+### 2. **<TABLE_NAME>.define.cs**
+  > [!NOTE]
+  > All the generated *.define.cs classes are partial classes and their only use is to set the custom **TableType** for the table.
+  > 
+  > <ins>This file is created only on the first execution and it will not be overwritten.</ins>
 
-### *.define.cs
-All the generated *.define.cs classes are partial classes and their only use is to set the custom **TableType** for the table.
->This file is created only on the first execution and it will not be overwritten.
+### 3. **<TABLE_NAME>.custom.cs**
+  > [!TIP]
+  > All the generated *.custom.cs classes are partial classes and can be customized as needed with methods and properties.
+  >
+  > <ins>This file is created only on the first execution and it will not be overwritten.</ins>
+  > 
+  > <ins>Place in this class your custom methods</ins>
+  >  
+  
+> [!WARNING]
+> In case of errors in the use of custom Properites with CRUD operations, mark them as `[NonSerialized]`. The CRUD system is based on reflection and it work only on Properties with the `ColumnNameAttribute` but as we know reflection is not perfect and there may be some mistakes.
 
-### *.custom.cs
-All the generated *.custom.cs classes are partial classes and can be customized as needed with methods and properties.
->In case of errors in the use of custom Properites, mark them as `[NonSerialized]` because the CRUD system is based on reflection and it should work only on Properties with the `ColumnNameAttribute`.
-
->This file is created only on the first execution and it will not be overwritten.
 
 ## DBDataLibrary.CRUD.ACrudBase
-Is the core of this DB table access system. It work through reflection and will make use of the generated classes and all the columns and TableType definition.
+Is the core of this DBMS table access system. It work through reflection and will make use of the generated classes and all the columns and TableType definition.
 
 This is intended to control wich kind of actions are allowed on every table and avoid "possible" mistakes in their common use in the code.
 
