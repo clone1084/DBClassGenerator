@@ -7,7 +7,7 @@ namespace DBDataLibrary.Utils
     {
         public static bool TryExtractKeyValues<TClass>(Expression<Func<TClass, bool>> expr, List<PropertyInfo> keyProps, out Dictionary<string, object> dict)
         {
-            dict = new();
+            dict = [];
 
             if (expr.Body is BinaryExpression andExpr && andExpr.NodeType == ExpressionType.AndAlso)
             {
@@ -46,7 +46,12 @@ namespace DBDataLibrary.Utils
                     var prop = keyProps.FirstOrDefault(p => p.Name == member.Member.Name);
                     if (prop != null)
                     {
-                        dict[prop.Name] = constant.Value;
+                        dict[prop.Name] = constant.Value!;
+                        //// Sostituisci questa riga:
+                        //// dict[prop.Name] = constant.Value;
+
+                        //// Con questa versione che usa l'operatore di null-coalescenza per evitare CS8601:
+                        //dict[prop.Name] = constant.Value ?? throw new InvalidOperationException("Constant value is null.");
                         return true;
                     }
                 }
@@ -56,15 +61,15 @@ namespace DBDataLibrary.Utils
 
         public static bool TryExtractSingleKey<TClass>(Expression<Func<TClass, bool>> expr, out string propertyName, out object value)
         {
-            propertyName = null;
-            value = null;
+            propertyName = "";
+            value = "";
 
             if (expr.Body is BinaryExpression binary && binary.NodeType == ExpressionType.Equal)
             {
                 if (binary.Left is MemberExpression member && binary.Right is ConstantExpression constant)
                 {
                     propertyName = member.Member.Name;
-                    value = constant.Value;
+                    value = constant.Value?? throw new NullReferenceException($"Null value for property [{propertyName}]");
                     return true;
                 }
             }
@@ -72,16 +77,11 @@ namespace DBDataLibrary.Utils
             return false;
         }
 
-        private class KeyEqualityVisitor : ExpressionVisitor
+        private class KeyEqualityVisitor(IReadOnlyList<PropertyInfo> keyProps) : ExpressionVisitor
         {
-            private readonly IReadOnlyList<PropertyInfo> _keyProps;
-            public Dictionary<string, object?>? KeyValues { get; private set; } = new();
+            private readonly IReadOnlyList<PropertyInfo> _keyProps = keyProps;
+            public Dictionary<string, object?>? KeyValues { get; private set; } = [];
             public bool IsValid => KeyValues != null && KeyValues.Count == _keyProps.Count;
-
-            public KeyEqualityVisitor(IReadOnlyList<PropertyInfo> keyProps)
-            {
-                _keyProps = keyProps;
-            }
 
             protected override Expression VisitBinary(BinaryExpression node)
             {

@@ -7,24 +7,24 @@ namespace DBDataLibrary.Extensions
 {
     public class KeywordHighlightingConsoleAppender : AppenderSkeleton
     {
-        public PatternLayout LayoutPattern { get; set; }
+        public required PatternLayout LayoutPattern { get; set; }
 
-        private readonly Dictionary<Level, (ConsoleColor Fore, ConsoleColor Back)> _levelColors = new();
-        private readonly List<(Regex Pattern, ConsoleColor Fore, ConsoleColor Back)> _highlightKeywords = new();
+        private readonly Dictionary<Level, (ConsoleColor Fore, ConsoleColor Back)> _levelColors = [];
+        private readonly List<(Regex Pattern, ConsoleColor Fore, ConsoleColor Back)> _highlightKeywords = [];
 
         // ====== CLASSI PER MAPPING CONFIGURABILE ======
         public class LevelColorMapping
         {
-            public Level Level { get; set; }
-            public string ForeColor { get; set; }
-            public string BackColor { get; set; }
+            public required Level Level { get; set; }
+            public required string ForeColor { get; set; }
+            public required string BackColor { get; set; }
         }
 
         public class KeywordColorMapping
         {
-            public string StringToMatch { get; set; }
-            public string ForeColor { get; set; }
-            public string BackColor { get; set; }
+            public required string StringToMatch { get; set; }
+            public required string ForeColor { get; set; }
+            public required string BackColor { get; set; }
         }
 
         // ====== CHIAMATI DA log4net DURANTE CONFIGURAZIONE XML ======
@@ -61,8 +61,10 @@ namespace DBDataLibrary.Extensions
             var originalFore = Console.ForegroundColor;
             var originalBack = Console.BackgroundColor;
 
+            Level lvl = loggingEvent.Level?? Level.Debug;
+
             // Colore di default per il livello
-            if (_levelColors.TryGetValue(loggingEvent.Level, out var colors))
+            if (_levelColors.TryGetValue(lvl, out var colors))
             {
                 Console.ForegroundColor = colors.Fore;
                 if (colors.Back != default)
@@ -70,13 +72,13 @@ namespace DBDataLibrary.Extensions
             }
 
             var message = RenderLoggingEvent(loggingEvent);
-            WriteWithHighlights(message, writer, originalFore, originalBack);
+            WriteWithHighlights(message, writer, originalFore);
 
             Console.ForegroundColor = originalFore;
             Console.BackgroundColor = originalBack;
         }
 
-        private void WriteWithHighlights(string message, TextWriter writer, ConsoleColor defaultFore, ConsoleColor defaultBack)
+        private void WriteWithHighlights(string message, TextWriter writer, ConsoleColor defaultFore)
         {
             int currentIndex = 0;
 
@@ -84,7 +86,7 @@ namespace DBDataLibrary.Extensions
             var matches = _highlightKeywords
                 .SelectMany(kvp => kvp.Pattern.Matches(message)
                     .Cast<Match>()
-                    .Select(m => (Index: m.Index, Length: m.Length, Fore: kvp.Fore, Back: kvp.Back)))
+                    .Select(m => (m.Index, m.Length, kvp.Fore, kvp.Back)))
                 .OrderBy(m => m.Index)
                 .ToList();
 
@@ -92,7 +94,7 @@ namespace DBDataLibrary.Extensions
             {
                 if (match.Index > currentIndex)
                 {
-                    writer.Write(message.Substring(currentIndex, match.Index - currentIndex));
+                    writer.Write(message.AsSpan(currentIndex, match.Index - currentIndex));
                 }
 
                 var prevFore = Console.ForegroundColor;
@@ -102,7 +104,7 @@ namespace DBDataLibrary.Extensions
                 if (match.Back != default)
                     Console.BackgroundColor = match.Back;
 
-                writer.Write(message.Substring(match.Index, match.Length));
+                writer.Write(message.AsSpan(match.Index, match.Length));
 
                 Console.ForegroundColor = prevFore;
                 Console.BackgroundColor = prevBack;
@@ -112,11 +114,11 @@ namespace DBDataLibrary.Extensions
 
             if (currentIndex < message.Length)
             {
-                writer.Write(message.Substring(currentIndex));
+                writer.Write(message.AsSpan(currentIndex));
             }
         }
 
-        private ConsoleColor ParseConsoleColor(string colorName)
+        private static ConsoleColor ParseConsoleColor(string colorName)
         {
             if (string.IsNullOrWhiteSpace(colorName))
                 return default;
