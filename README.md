@@ -21,15 +21,11 @@ The application will create 3 files for each table:
   > 
   > <ins>This file must never be customized, a new execution will overwrite the file and all it's content.</ins>
 
-### 2. **<TABLE_NAME>.define.cs**
-  > [!NOTE]
-  > All the generated *.define.cs classes are partial classes and their only use is to set the custom **TableType** for the table.
-  > 
-  > <ins>This file is created only on the first execution and it will not be overwritten.</ins>
-
-### 3. **<TABLE_NAME>.custom.cs**
+### 2. **<TABLE_NAME>.custom.cs**
   > [!TIP]
   > All the generated *.custom.cs classes are partial classes and can be customized as needed with methods and properties.
+  > 
+  > They contain the custom **TableType** tag that allows operation on the table
   >
   > <ins>This file is created only on the first execution and it will not be overwritten.</ins>
   > 
@@ -46,20 +42,20 @@ Is the core of this DBMS table access system. It work through reflection and wil
 This is intended to control wich kind of actions are allowed on every table and avoid "possible" mistakes in their common use in the code.
 
 + **Read**: is always available for every table.
-  + Get: will return the first element of a query. This uses LINQ `Expression` to create SQL where clauses. In this way we allow the use only of the expected columns and their proper values.
+  + Get: will return the first element of a query. This uses LINQ `Expression` to create SQL where clauses. In this way we allow the use of only the expected columns and their proper values.
   + GetMany: will return an IEnumerable<TableClass> with all the results of the query. This has 2 versions:
     1. Uses LINQ `Expression` to create SQL where clauses, this may search directly in the cache if it's available and eventually fall back to the DB;
     2. Uses standard handwritten SQL where clauses and will always query the DBMS.
 + **Insert**: is optional.
-  + Must be declared in the `<TABLE_NAME>.define.cs` file to allow the Insert funcion to be used on the table.
+  + Must be declared in the `<TABLE_NAME>.custom.cs` file to allow the Insert funcion to be used on the table.
 + **Update**: is optional.
-  + Must be declared in the `<TABLE_NAME>.define.cs` file to allow the Update funcion to be used on the table.
+  + Must be declared in the `<TABLE_NAME>.custom.cs` file to allow the Update funcion to be used on the table.
 + **Delete**: is optional.
-  + Must be declared in the `<TABLE_NAME>.define.cs` file to allow the Delete funcion to be used on the table.
+  + Must be declared in the `<TABLE_NAME>.custom.cs` file to allow the Delete funcion to be used on the table.
 + **Cached**: is optional.
-  + May be declared in the `<TABLE_NAME>.define.cs` file to enable the automatic use of an "in-memory" cache and all the allowed functions will make use of the cache. (Insert, Update and Delete will always commit to the DB too).
+  + May be declared in the `<TABLE_NAME>.custom.cs` file to enable the automatic use of an "in-memory" cache and all the allowed functions will make use of the cache. (Insert, Update and Delete will always commit to the DB too).
 
 
 # CrudTestApp
-If AutomaticTestOfAllClasses method is enebled in its Run() method, this will try to execute all the CRUD actions on the table and return the result to check if the `<TABLE_NAME>.define.cs` files are decorated as expected. 
+If AutomaticTestOfAllClasses method is enebled in its Run() method, this will try to execute all the CRUD actions on the table and return the result to check if the `<TABLE_NAME>.custom.cs` files are decorated as expected. 
 *(Still under development)*
