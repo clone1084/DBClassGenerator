@@ -1,9 +1,5 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using CRUDTestApp;
-using DBDataLibrary.Utils;
-using DBDataLibrary.Tables;
-using log4net;
-using Oracle.ManagedDataAccess.Client;
 
 System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 

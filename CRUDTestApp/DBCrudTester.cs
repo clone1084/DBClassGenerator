@@ -35,7 +35,7 @@ namespace CRUDTestApp
 
         public void Run()
         {
-            var log = log4net.LogManager.GetLogger(typeof(DBCrudTester));
+            var log = LogManager.GetLogger(typeof(DBCrudTester));
             string baseLogMessage = "[DBCrudTester]";
 
 

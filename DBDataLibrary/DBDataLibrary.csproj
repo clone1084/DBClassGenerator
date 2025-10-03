@@ -7,12 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="DataTypes\**" />
-    <EmbeddedResource Remove="DataTypes\**" />
-    <None Remove="DataTypes\**" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="log4net" Version="3.1.0" />
     <PackageReference Include="System.ComponentModel.Composition" Version="9.0.8" />
     <PackageReference Include="System.Composition.AttributedModel" Version="9.0.8" />

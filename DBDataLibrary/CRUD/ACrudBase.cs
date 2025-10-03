@@ -149,9 +149,12 @@ namespace DBDataLibrary.CRUD
 
             return Type.GetTypeCode(type) switch
             {
-                TypeCode.Decimal => DbType.Decimal,
+                TypeCode.Byte => DbType.Byte,
+                TypeCode.Int16 => DbType.Int16,
                 TypeCode.Int32 => DbType.Int32,
                 TypeCode.Int64 => DbType.Int64,
+                TypeCode.Decimal => DbType.Decimal,
+                TypeCode.Single => DbType.Single,                
                 TypeCode.String => DbType.String,
                 TypeCode.DateTime => DbType.DateTime,
                 TypeCode.Double => DbType.Double,

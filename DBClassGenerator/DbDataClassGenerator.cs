@@ -289,8 +289,6 @@ namespace DBClassGenerator
                 _ => "string"
             };
 
-            //return (type != "string" && isNullable) ? type + "?" : type;		
-
             // Add '?' for value types if column is nullable
             bool isValueType = type is not "string" and not "byte[]" and not "object";
             return isValueType && isNullable ? $"{type}?" : type;
@@ -352,16 +350,6 @@ namespace DBClassGenerator
                 bool isRequired = !col.IsNullable && !isPrimaryKey;
 
                 // Field declaration
-                //string fieldInitializer = ";";
-                ////if (isPrimaryKey || isRequired)
-                //{
-                //    if (type == "string")
-                //        fieldInitializer = " = \"\";";
-                //    else if (type == "DateTime")
-                //        fieldInitializer = " = DateTime.MinValue;";
-                //    else if (!type.EndsWith("?"))
-                //        fieldInitializer = $" = default({type});";
-                //}
                 string? defaultInit = ParseDefaultValue(col.DefaultValue, type);
                 string fieldInitializer = defaultInit != null ? $" = {defaultInit};" :
                                              type == "string" ? " = \"\";" :

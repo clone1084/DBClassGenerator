@@ -1,13 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36310.24 d17.14
+VisualStudioVersion = 17.14.36310.24
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DBClassGenerator", "DBClassGenerator\DBClassGenerator.csproj", "{CDACF028-F494-4464-A7EE-0605BD0A7934}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DBDataLibrary", "DBDataLibrary\DBDataLibrary.csproj", "{0095F22F-DB7B-4BE9-8803-45F8ED76F42F}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CRUDTestApp", "CRUDTestApp\CRUDTestApp.csproj", "{B9C42F3C-8CE5-4422-86BC-9D67F2D76EAC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -23,10 +21,6 @@ Global
 		{0095F22F-DB7B-4BE9-8803-45F8ED76F42F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0095F22F-DB7B-4BE9-8803-45F8ED76F42F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0095F22F-DB7B-4BE9-8803-45F8ED76F42F}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B9C42F3C-8CE5-4422-86BC-9D67F2D76EAC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B9C42F3C-8CE5-4422-86BC-9D67F2D76EAC}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B9C42F3C-8CE5-4422-86BC-9D67F2D76EAC}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B9C42F3C-8CE5-4422-86BC-9D67F2D76EAC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
