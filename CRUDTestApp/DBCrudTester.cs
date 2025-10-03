@@ -1,21 +1,16 @@
 ﻿using DBDataLibrary.Attributes;
 using DBDataLibrary.CRUD;
 using DBDataLibrary.Utils;
-using DBDataLibrary.Tables;
 using log4net;
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
+using Oracle.ManagedDataAccess.Client;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CRUDTestApp
 {
     internal class DBCrudTester
     {
         static string connectionString = "";
+        //static string dataTablesDll = "";
 
         public DBCrudTester(string[] args)
         {
@@ -27,6 +22,7 @@ namespace CRUDTestApp
             for (int i = 0; i < args.Length - 1; i++)
             {
                 if (args[i] == "-cs") connectionString = args[i + 1];
+                //if (args[i] == "-p") dataTablesDll = args[i + 1];
                 //if (args[i] == "-ns") targetNamespace = args[i + 1];
                 //if (args[i] == "-out") outputDirectory = args[i + 1];
                 //if (args[i] == "-tn") tableNameFilter = args[i + 1];
@@ -45,31 +41,33 @@ namespace CRUDTestApp
                 return;
             }
 
-            using var conn = new Oracle.ManagedDataAccess.Client.OracleConnection(connectionString);
+            //if (string.IsNullOrEmpty(dataTablesDll) || !File.Exists(dataTablesDll))
+            //{
+            //    log.Error("DataTable.dll is not provided or the file does not exist. Use -p to specify it.");
+            //    return;
+            //}
+
+            //var asm = BuildAndLoadTablesProject(log, baseLogMessage, dataTablesDll);
+            //if (asm == null)
+            //{
+            //    log.Error("Failed to build or load the project.");
+            //    return;
+            //}
+
+            using var conn = new OracleConnection(connectionString);
             conn.Open();
             log.Info($"Connected to database with connection string: {connectionString}");
 
             try
             {
-                //log.Debug($"DEBUG - OK");
-                //log.Debug($"DEBUG - warning");
-                //log.Debug($"DEBUG - FATAL");
-                //log.Info("INFO");
-                //log.Warn("WARN");
-                //log.Error("ERROR");
-                //log.Fatal("FATAL");
-                //log.Info($"");
                 log.Info($"{baseLogMessage} Starting CRUD tests...");
 
-                CacheRefreshScheduler.Start(conn, log, TimeSpan.FromSeconds(10), "AutoCacheRefresh");
+                CacheRefreshScheduler.Start(connectionString, log, TimeSpan.FromSeconds(10), "AutoCacheRefresh");
 
                 conn.BeginTransaction(System.Data.IsolationLevel.ReadCommitted);
                 log.Info($"{baseLogMessage} Transaction started.");
 
-                ManualTest(conn, log, baseLogMessage);
-                ManualTest2(conn, log, baseLogMessage);
-
-                //AutomaticTestOfAllClasses(conn, log, baseLogMessage);
+                AutomaticTestOfAllClasses(conn, log, baseLogMessage);
 
                 log.Info("All tests completed.");
             }
@@ -81,148 +79,10 @@ namespace CRUDTestApp
             }
         }
 
-        private void ManualTest(Oracle.ManagedDataAccess.Client.OracleConnection conn, log4net.ILog log, string baseLogMessage)
+        private void AutomaticTestOfAllClasses(OracleConnection conn, ILog log, string baseLogMsg)
         {
-            MfcConvMovements mov = new MfcConvMovements()
-            {
-                StartType = 2,
-                StartPar1 = 1001,
-                DestType = 6,
-                DestPar1 = 2002,
-                ActualType = 2,
-                ActualPar1 = 1001,
-                OidUdm = 100,
-                Constraint = "NORM",
-                Priority = 1,
-                Result = 0,                
-            };
-
-            //DateTime start = DateTime.Now;
-            //LogResult(mov.Insert(conn, log, baseLogMessage), "    ManualInsert MfcConvMovements");
-            //log.Info($"OID: {mov.Oid}, DT_INSERT: {mov.DtInsert}");
-            log.Info($"Insert: {(mov.Insert(conn, log, baseLogMessage) ? "OK" : "KO")} at DT_INSERT: {mov.DtInsert}");
-            //log.Warn($"Insert took {(DateTime.Now - start).TotalMilliseconds:N2} ms");
-
-            mov.ActualType = 6;
-            mov.ActualPar1 = 2002;
-            
-            //start = DateTime.Now;
-            //LogResult(mov.Update(conn, log, baseLogMessage), "    ManualUpdate ManToCom");
-            //log.Info($"DtUpdated: {mov.DtUpdate}");
-            log.Info($"Update: {(mov.Update(conn, log, baseLogMessage) ? "OK" : "KO")} at DT_UPDATE: {mov.DtUpdate}");
-            //log.Warn($"Update took {(DateTime.Now - start).TotalMilliseconds:N2} ms");
-
-            //start = DateTime.Now;
-            MfcConvMovements mov2 = MfcConvMovements.Get(conn, log, baseLogMessage, x => x.Oid == mov.Oid);
-            //log.Warn($"ManualLoad took {(DateTime.Now - start).TotalMilliseconds:N2} ms");
-            //LogResult(mov2 != null, "    ManualLoad ManToCom");
-            //LogResult(mov2 != null && mov2.Oid == mov.Oid, "ManualLoad have the same OID of ManualInsert");
-            //log.Info($"DB Loaded actual position: {mov2.ActualPar1} DtUpdate: {mov2.DtUpdate}");
-            log.Info($"Get: {(mov2 != null? "OK" : "KO")} at DT_UPDATE: {mov2.DtUpdate}");
-
-            //start = DateTime.Now;
-            var allMtc = MfcConvMovements.GetMany(conn, log, baseLogMessage);
-            ////log.Warn($"ManualLoadAll took {(DateTime.Now - start).TotalMilliseconds:N2} ms");
-            //LogResult(allMtc?.Count() != 0, "    ManualLoadAll MfcConvMovements");
-            //log.Info($"Loaded {allMtc?.Count()} MfcConvManToCom records from DB");
-            log.Info($"GetMany: {(allMtc?.Count() != 0 ? "OK" : "KO")}");
-
-            //LogResult(mov.Delete(conn, log, baseLogMessage), "    ManualDelete ManToCom");
-            log.Info($"Delete: {(mov.Delete(conn, log, baseLogMessage) ? "OK" : "KO")}");
-        }
-
-        private void ManualTest2(Oracle.ManagedDataAccess.Client.OracleConnection conn, log4net.ILog log, string baseLogMessage)
-        {
-            MfcConvRouting.LoadCache(conn, log, baseLogMessage);
-
-            int i = 0;
-            List<TimeSpan> dbLoadAll = new();
-            List<TimeSpan> dbLoadAll1001Linq = new();
-            List<TimeSpan> dbLoadAll1001Sql = new();
-            List<TimeSpan> dbLoad1001 = new();
-            List<TimeSpan> cacheLoadAll = new();
-            List<TimeSpan> cacheLoadAll1001 = new();
-            List<TimeSpan> cacheLoad1001 = new();
-
-            var pars = new Dictionary<string, object?>()
-            {
-                [":cdItemFrom"] = "1001",
-            };
-            int maxCount = 10;
-            log.Info($"Looping {maxCount} for extended test...");
-            while (i < maxCount)
-            {
-                i++;
-
-                // DB
-                {
-                    var dtStart = DateTime.Now;
-                    var dbRouting = MfcConvRouting.GetMany(conn, log, baseLogMessage, ignoreCache: true);
-                    var ts = (DateTime.Now - dtStart);
-                    dbLoadAll.Add(ts);
-                    //log.Info($"DB GetMany [{dbRouting.Count()}] took {ts.TotalMilliseconds:N2} ms");
-                }
-                {
-                    var dtStart = DateTime.Now;
-                    var dbRouting = MfcConvRouting.GetMany(conn, log, baseLogMessage, x => x.CdItemFrom == "1001", ignoreCache: true);
-                    var ts = (DateTime.Now - dtStart);
-                    dbLoadAll1001Linq.Add(ts);
-                    //log.Info($"DB GetMany 1001 LINQ [{dbRouting.Count()}] took {ts.TotalMilliseconds:N2} ms");
-                }
-                {
-                    var dtStart = DateTime.Now;
-                    var dbRouting = MfcConvRouting.GetMany(conn, log, baseLogMessage, "CD_ITEM_FROM = :cdItemFrom", pars );
-                    //var dbRouting = MfcConvRouting.GetMany(conn, log, baseLogMessage, "CD_ITEM_FROM = 1001");
-                    var ts = (DateTime.Now - dtStart);
-                    dbLoadAll1001Sql.Add(ts);
-                    //log.Info($"DB GetMany 1001 SQL [{dbRouting.Count()}] took {ts.TotalMilliseconds:N2} ms");
-                }
-                {
-                    var dtStart = DateTime.Now;
-                    MfcConvRouting dbRouting = MfcConvRouting.Get(conn, log, baseLogMessage, x => x.CdItemFrom == "1001", true);
-                    var ts = (DateTime.Now - dtStart);
-                    dbLoad1001.Add(ts);
-                    //log.Info($"DB Get 1001 took {ts.TotalMilliseconds:N2} ms");
-                }
-
-                // Cache
-                {
-                    var dtStart = DateTime.Now;
-                    var cacheRouting = MfcConvRouting.GetMany(conn, log, baseLogMessage); 
-                    var ts = (DateTime.Now - dtStart);
-                    cacheLoadAll.Add(ts);
-                    //log.Info($"Cache GetMany [{dbRouting.Count()}] took {ts.TotalMilliseconds:N2} ms");
-                }
-                {
-                    var dtStart = DateTime.Now;
-                    var cacheRouting = MfcConvRouting.GetMany(conn, log, baseLogMessage, x => x.CdItemFrom == "1001");
-                    var ts = (DateTime.Now - dtStart);
-                    cacheLoadAll1001.Add(ts);
-                    //log.Info($"Cache GetMany 1001 [{dbRouting.Count()}] took {ts.TotalMilliseconds:N2} ms");
-                }
-                {
-                    var dtStart = DateTime.Now;
-                    MfcConvRouting cacheRouting = MfcConvRouting.Get(conn, log, baseLogMessage, x => x.CdItemFrom == "1001");
-                    var ts = (DateTime.Now - dtStart);
-                    cacheLoad1001.Add(ts);
-                    //log.Info($"Cache Get 1001 took {ts.TotalMilliseconds:N2} ms");
-                }
-            }
-
-            log.Info($"Summary of Get Tests:");
-            log.Info($"Source            | Min        | Max        | Avg        ");
-            log.Info($"DB GetMany        | {dbLoadAll.Min().TotalMilliseconds,7:N2} ms | {dbLoadAll.Max().TotalMilliseconds,7:N2} ms | {dbLoadAll.Average(x => x.TotalMilliseconds),7:N2} ms");
-            log.Info($"DB GetMany 1001   | {dbLoadAll1001Linq.Min().TotalMilliseconds,7:N2} ms | {dbLoadAll1001Linq.Max().TotalMilliseconds,7:N2} ms | {dbLoadAll1001Linq.Average(x => x.TotalMilliseconds),7:N2} ms");
-            log.Info($"DB GetMany 1001SQL| {dbLoadAll1001Sql.Min().TotalMilliseconds,7:N2} ms | {dbLoadAll1001Sql.Max().TotalMilliseconds,7:N2} ms | {dbLoadAll1001Sql.Average(x => x.TotalMilliseconds),7:N2} ms");
-            log.Info($"DB Get 1001       | {dbLoad1001.Min().TotalMilliseconds,7:N2} ms | {dbLoad1001.Max().TotalMilliseconds,7:N2} ms | {dbLoad1001.Average(x => x.TotalMilliseconds),7:N2} ms");
-            log.Info($"Cache GetMany     | {cacheLoadAll.Min().TotalMilliseconds,7:N2} ms | {cacheLoadAll.Max().TotalMilliseconds,7:N2} ms | {cacheLoadAll.Average(x => x.TotalMilliseconds),7:N2} ms");
-            log.Info($"Cache GetMany 1001| {cacheLoadAll1001.Min().TotalMilliseconds,7:N2} ms | {cacheLoadAll1001.Max().TotalMilliseconds,7:N2} ms | {cacheLoadAll1001.Average(x => x.TotalMilliseconds),7:N2} ms");
-            log.Info($"Cache Get 1001    | {cacheLoad1001.Min().TotalMilliseconds,7:N2} ms | {cacheLoad1001.Max().TotalMilliseconds,7:N2} ms | {cacheLoad1001.Average(x => x.TotalMilliseconds),7:N2} ms");
-        }
-
-        private void AutomaticTestOfAllClasses(Oracle.ManagedDataAccess.Client.OracleConnection conn, log4net.ILog log, string baseLogMessage)
-        {
-            var baseType = typeof(DBDataLibrary.CRUD.ACrudBase<>);
+            baseLogMsg += "AutomaticTestOfAllClasses->";
+            var baseType = typeof(ACrudBase<>);
 
             // Cerca tutte le classi concrete che ereditano da ACrudBase<TData>
             List<Type> typesToTest = AppDomain.CurrentDomain.GetAssemblies()
@@ -234,13 +94,14 @@ namespace CRUDTestApp
                     t.BaseType.GetGenericTypeDefinition() == baseType)
                 .ToList();
 
-            log.Info($"Found {typesToTest.Count} tables to test");
+
+            log.Info($"{baseLogMsg}Found {typesToTest.Count()} tables to test");
 
             Console.Write("Proceed? (Y/N): ");
             var proceed = Console.ReadLine()?.Trim().ToUpper();
             if (proceed != "Y")
             {
-                Console.WriteLine("Operation cancelled.");
+                log.Warn($"{baseLogMsg}Operation cancelled.");
                 return;
             }
 
@@ -253,7 +114,7 @@ namespace CRUDTestApp
                 {
                     dynamic crudInstance = Activator.CreateInstance(type)!;
 
-                    log.Info($"[{count++}/{typesToTest.Count}] {type.Name} [{crudInstance.TableName}]:");
+                    log.Info($"{baseLogMsg}[{count++}/{typesToTest.Count()}] {type.Name} [{crudInstance.TableName}]:");
 
                     // GET THE CUSTOM ATTRIBUTE
                     // Assuming the TableTypes attribute is defined on the class itself
@@ -262,32 +123,50 @@ namespace CRUDTestApp
 
                     if (tableTypeAttribute == null)
                     {
-                        log.Warn($"    Skipping {type.Name}: No TableTypes attribute found.");
+                        log.Warn($"{baseLogMsg}    Skipping {type.Name}: No TableTypes attribute found.");
                         continue;
                     }
 
                     TableTypes tableType = tableTypeAttribute.TableType;
 
-                    log.Info($"    TableType: {tableType}");
+                    log.Info($"{baseLogMsg}    TableType: {tableType}");
 
-                    // CONDITIONAL EXECUTION BASED ON ATTRIBUTE FLAGS
+                    if (tableType.HasFlag(TableTypes.Insertable))
+                    {
+                        // INSERT
+                        InsertTest(conn, type, crudInstance, log, baseLogMsg);
+                    }
+                    else
+                    {
+                        log.Info($"    Insert UNAVAILABLE");
+                    }
 
-                    // INSERT
-                    InsertTest(conn, type, crudInstance, log, baseLogMessage);
-
-                    // UPDATE modifica la prima proprietà modificabile
-
-                    UpdateTest(conn, type, crudInstance, log, baseLogMessage);
+                    if (tableType.HasFlag(TableTypes.Updatable))
+                    {
+                        // UPDATE modifica la prima proprietà modificabile
+                        UpdateTest(conn, type, crudInstance, log, baseLogMsg);
+                    }
+                    else
+                    {
+                        log.Info($"    Update UNAVAILABLE");
+                    }
 
                     // LOAD
-                    LoadTest(conn, type, tableType, log, baseLogMessage);
+                    LoadTest(conn, type, tableType, log, baseLogMsg);
 
-                    // DELETE
-                    DeleteTest(conn, crudInstance, log, baseLogMessage);
+                    if (tableType.HasFlag(TableTypes.Deletable))
+                    {
+                        // DELETE
+                        DeleteTest(conn, crudInstance, log, baseLogMsg);
+                    }
+                    else
+                    {
+                        log.Info($"    Delete UNAVAILABLE");
+                    }
                 }
                 catch (Exception ex)
                 {
-                    log.Error($"    Error testing {type.Name}: {(ex.InnerException != null ? ex.InnerException.Message : ex.Message)}");
+                    log.Error($"{baseLogMsg}    Error testing {type.Name}: {(ex.InnerException != null ? ex.InnerException.Message : ex.Message)}");
                 }
             }
         }

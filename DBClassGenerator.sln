@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DBClassGenerator", "DBClass
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DBDataLibrary", "DBDataLibrary\DBDataLibrary.csproj", "{0095F22F-DB7B-4BE9-8803-45F8ED76F42F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CRUDTestApp", "CRUDTestApp\CRUDTestApp.csproj", "{C668FB11-CAA3-7028-4C4E-715D0048A87A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{0095F22F-DB7B-4BE9-8803-45F8ED76F42F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0095F22F-DB7B-4BE9-8803-45F8ED76F42F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0095F22F-DB7B-4BE9-8803-45F8ED76F42F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C668FB11-CAA3-7028-4C4E-715D0048A87A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C668FB11-CAA3-7028-4C4E-715D0048A87A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C668FB11-CAA3-7028-4C4E-715D0048A87A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C668FB11-CAA3-7028-4C4E-715D0048A87A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

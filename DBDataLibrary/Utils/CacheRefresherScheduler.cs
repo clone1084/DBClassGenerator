@@ -1,5 +1,6 @@
 ﻿using DBDataLibrary.CRUD;
 using log4net;
+using Oracle.ManagedDataAccess.Client;
 using System.ComponentModel.Composition;
 using System.ComponentModel.Composition.Hosting;
 using System.Data;
@@ -15,8 +16,8 @@ namespace DBDataLibrary.Utils
         public void Compose()
         {
             var catalog = new AggregateCatalog();
-            catalog.Catalogs.Add(new AssemblyCatalog(Assembly.GetExecutingAssembly())); 
-            
+            catalog.Catalogs.Add(new AssemblyCatalog(Assembly.GetExecutingAssembly()));
+
             var crudAssembly = Assembly.GetAssembly(typeof(ICrudClass));
             if (crudAssembly != null)
                 catalog.Catalogs.Add(new AssemblyCatalog(crudAssembly)); 
@@ -34,7 +35,7 @@ namespace DBDataLibrary.Utils
 
                 if (cancellationToken.IsCancellationRequested)
                 {
-                    log.Debug($"{baseLogMessage} Cache refresh cancelled.");
+                    log.Warn($"{baseLogMessage} Cache refresh cancelled.");
                     return;
                 }
 
@@ -49,17 +50,19 @@ namespace DBDataLibrary.Utils
         private static CancellationTokenSource _cts = new();
         private static Task? _backgroundTask;
 
-        public static void Start(IDbConnection connection, ILog log, TimeSpan interval, string baseLogMessage)
+        public static void Start(string connectionString, ILog log, TimeSpan interval, string baseLogMessage)
         {
             _backgroundTask = Task.Run(async () =>
             {
+                using var conn = new OracleConnection(connectionString);
+                conn.Open();
                 CacheBootstrapper cbs = new CacheBootstrapper();
                 cbs.Compose();
                 while (!_cts.Token.IsCancellationRequested)
                 {
                     try
                     {
-                        cbs.LoadAllCaches(connection, log, baseLogMessage, _cts.Token);
+                        cbs.LoadAllCaches(conn, log, baseLogMessage, _cts.Token);
                     }
                     catch (Exception ex)
                     {
