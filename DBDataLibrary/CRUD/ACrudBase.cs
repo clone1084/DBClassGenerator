@@ -8,6 +8,18 @@ using System.Reflection;
 
 namespace DBDataLibrary.CRUD
 {
+    /// <summary>
+    /// Classe base astratta per operazioni CRUD (Create, Read, Update, Delete) su tabelle di database.
+    /// Tutte le classi autogenerate ereditano da questa classe.
+    /// * La classe supporta il caching dei record se la tabella è marcata come Cached.
+    /// * La classe utilizza attributi personalizzati per mappare le proprietà alle colonne del database.
+    /// * La classe supporta il tracciamento delle proprietà modificate per ottimizzare le operazioni di update.
+    /// * La classe utilizza espressioni lambda per costruire query WHERE in modo sicuro.
+    /// * La classe gestisce automaticamente le colonne di audit come DT_INSERT e DT_UPDATE.
+    /// * La classe supporta operazioni asincrone per il caricamento della cache.
+    /// * La classe implementa IEquatable per confronti basati sul tutte le colonne della tabella.
+    /// </summary>
+    /// <typeparam name="TClass"></typeparam>
     public abstract class ACrudBase<TClass> : ICrudClass<TClass> , IEquatable<TClass>
         where TClass : ACrudBase<TClass>, new()
     {
@@ -176,7 +188,8 @@ namespace DBDataLibrary.CRUD
 
         public bool Insert(IDbConnection connection, ILog log, string baseLogMessage)
         {
-            baseLogMessage += $"{typeof(TClass).Name}.{nameof(Insert)}: ";
+            
+            baseLogMessage += $"{nameof(ACrudBase<TClass>)}.{nameof(Insert)}: ";
 
             if (HasTableTypeFlag(TableTypes.ReadOnly))
             {
@@ -291,7 +304,7 @@ namespace DBDataLibrary.CRUD
 
         public bool Update(IDbConnection connection, ILog log, string baseLogMessage)
         {
-            baseLogMessage += $"{typeof(TClass).Name}.{nameof(Update)}: ";
+            baseLogMessage += $"{nameof(ACrudBase<TClass>)}.{nameof(Update)}: ";
 
             if (HasTableTypeFlag(TableTypes.ReadOnly))
             {
@@ -439,7 +452,7 @@ namespace DBDataLibrary.CRUD
 
         public bool Delete(IDbConnection connection, ILog log, string baseLogMessage)
         {
-            baseLogMessage += $"{typeof(TClass).Name}.{nameof(Delete)}: ";
+            baseLogMessage += $"{nameof(ACrudBase<TClass>)}.{nameof(Delete)}: ";
 
             if (HasTableTypeFlag(TableTypes.ReadOnly))
             {
@@ -508,7 +521,7 @@ namespace DBDataLibrary.CRUD
         /// <returns></returns>
         public static TClass Get(IDbConnection connection, ILog log, string baseLogMessage, Expression<Func<TClass, bool>> whereExpression, bool ignoreCache = false)
         {
-            baseLogMessage += $"{typeof(TClass).Name}.{nameof(Get)}: ";
+            baseLogMessage += $"{nameof(ACrudBase<TClass>)}.{nameof(Get)}: ";
             using (ExecutionTimerLogger etl = new ExecutionTimerLogger(log, baseLogMessage, LogLevel.Debug))
             {
                 try
@@ -589,7 +602,7 @@ namespace DBDataLibrary.CRUD
         /// <returns></returns>
         public static IEnumerable<TClass> GetMany(IDbConnection connection, ILog log, string baseLogMessage, Expression<Func<TClass, bool>>? whereExpression = null, bool ignoreCache = false)
         {
-            baseLogMessage += $"{typeof(TClass).Name}.{nameof(GetMany)}: ";
+            baseLogMessage += $"{nameof(ACrudBase<TClass>)}.{nameof(GetMany)}: ";
             var resultList = new List<TClass>();
 
             using (ExecutionTimerLogger etl = new ExecutionTimerLogger(log, baseLogMessage, LogLevel.Debug))
@@ -661,7 +674,7 @@ namespace DBDataLibrary.CRUD
         /// <returns></returns>
         public static IEnumerable<TClass> GetMany(IDbConnection connection, ILog log, string baseLogMessage, string whereFilter = "", Dictionary<string, object?>? parameters = null)
         {
-            baseLogMessage += $"{typeof(TClass).Name}.{nameof(GetMany)}: ";
+            baseLogMessage += $"{nameof(ACrudBase<TClass>)}.{nameof(GetMany)}: ";
 
             var resultList = new List<TClass>();
 
@@ -709,7 +722,7 @@ namespace DBDataLibrary.CRUD
 
         public void ReLoadCache(IDbConnection connection, ILog log, string baseLogMessage, CancellationToken cancellationToken)
         {
-            baseLogMessage += $"{typeof(TClass).Name}.{nameof(ReLoadCache)}: ";
+            baseLogMessage += $"{nameof(ACrudBase<TClass>)}.{nameof(ReLoadCache)}: ";
             if (cancellationToken.IsCancellationRequested)
             {
                 log.Debug($"{baseLogMessage}[{TableName}] Cache refresh cancelled.");
@@ -720,7 +733,7 @@ namespace DBDataLibrary.CRUD
 
         public static void LoadCache(IDbConnection connection, ILog log, string baseLogMessage)
         {
-            baseLogMessage += $"{typeof(TClass).Name}.{nameof(LoadCache)}: ";
+            baseLogMessage += $"{nameof(ACrudBase<TClass>)}.{nameof(LoadCache)}: ";
             if (!HasTableTypeFlag(TableTypes.Cached))
             {
                 log.Error($"{baseLogMessage}Table '{typeof(TClass).Name}' is not marked as Cached. Cannot load cache.");
@@ -797,7 +810,7 @@ namespace DBDataLibrary.CRUD
             return instance;
         }
 
-        public bool Equals(TClass? other)
+        public virtual bool Equals(TClass? other)
         {
             if (other is null)
                 return false;

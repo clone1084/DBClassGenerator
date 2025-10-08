@@ -7,6 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="DataTypes\**" />
+    <EmbeddedResource Remove="DataTypes\**" />
+    <None Remove="DataTypes\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="log4net" Version="3.2.0" />
     <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="23.9.1" />
     <PackageReference Include="System.ComponentModel.Composition" Version="9.0.9" />
