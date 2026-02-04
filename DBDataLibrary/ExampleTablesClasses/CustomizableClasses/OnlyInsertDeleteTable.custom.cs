@@ -11,8 +11,8 @@ namespace DBDataLibrary.Tables
     // --          CHANGES HERE ARE SAFE!         --
     //  -------------------------------------------
     // Customize the TableType to allow more functions of the table
-    [TableType(TableTypes.Updatable)]
-    public partial class MfcConvConfLift
+    [TableType(TableTypes.Insertable | TableTypes.Deletable)]
+    public partial class OnlyInsertDeleteTable
     {
          // Insert your customizations in this class
     }

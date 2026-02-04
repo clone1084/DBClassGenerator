@@ -35,6 +35,15 @@ namespace DBDataLibrary.CRUD
 
         protected ACrudBase() { }
 
+        /// <summary>
+        /// Override this method to specify which properties should not be updated.
+        /// Return a set of property names that should be excluded from UPDATE operations.
+        /// </summary>
+        protected virtual HashSet<string> GetReadOnlyOnUpdateProperties()
+        {
+            return new HashSet<string>();
+        }
+
         protected static void AddToCache(TClass instance)
         {
             var compositeKey = instance.GetInstanceCompositeKey();
@@ -327,9 +336,13 @@ namespace DBDataLibrary.CRUD
                         return true;
 
                     var type = typeof(TClass);
+                    var readOnlyProps = GetReadOnlyOnUpdateProperties();
+                    
                     var propsModified = modified
                         .Select(name => type.GetProperty(name))
-                        .Where(p => p != null && p.GetCustomAttribute<System.ComponentModel.DataAnnotations.KeyAttribute>() == null)
+                        .Where(p => p != null 
+                            && p.GetCustomAttribute<System.ComponentModel.DataAnnotations.KeyAttribute>() == null
+                            && !readOnlyProps.Contains(p.Name))
                         .ToList();
 
                     if (!propsModified.Any())

@@ -11,8 +11,8 @@ namespace DBDataLibrary.Tables
     // --          CHANGES HERE ARE SAFE!         --
     //  -------------------------------------------
     // Customize the TableType to allow more functions of the table
-    [TableType(TableTypes.CRUD)]
-    public partial class MfcConvAnomalies
+    [TableType(TableTypes.ReadOnly | TableTypes.Cached)]
+    public partial class ReadOnlyCachedTable
     {
          // Insert your customizations in this class
     }

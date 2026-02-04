@@ -14,11 +14,11 @@ namespace DBDataLibrary.Tables
     //  |  ANY CHANGE WILL BE LOST AT THE NEXT GENERATION  |
     //   -------------------------------------------------- 
     //  </auto-generated>
-    [TableName("MFC_CONV_MAN_TO_COM")]
+    [TableName("INSERT_DELETE_TABLE")]
     [GeneratedCode("DbDataClassGenerator", "1.0.0.0")]
-    public partial class MfcConvManToCom : ACrudBase<MfcConvManToCom>
+    public partial class OnlyInsertDeleteTable : ACrudBase<OnlyInsertDeleteTable>
     {
-        public MfcConvManToCom() : base() { }
+        public OnlyInsertDeleteTable() : base() { }
         
         [NonSerialized] private long _oid = default(long);
         [ColumnName("OID")]
