@@ -15,8 +15,18 @@ string password = "ORA_PASSWORD";
 
 string connectionString = $"Data Source = (DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={hostIP})(PORT=1521))(CONNECT_DATA=(SERVICE_NAME={serviceName})));User ID= {userID}; Password = {password};Pooling=false;";
 
-DBCrudTester tester = new DBCrudTester(new string[] { "-cs", connectionString });
-tester.Run();
+// Check if specific test is requested
+if (args.Length > 0 && args[0] == "-testReadOnly")
+{
+    Console.WriteLine("\n=== Running ReadOnlyOnUpdate Test ===\n");
+    var readOnlyTest = new ReadOnlyOnUpdateTest(connectionString);
+    readOnlyTest.RunTest();
+}
+else
+{
+    DBCrudTester tester = new DBCrudTester(new string[] { "-cs", connectionString });
+    tester.Run();
+}
 
 Console.WriteLine("Press Enter to exit...");
 Console.ReadLine();

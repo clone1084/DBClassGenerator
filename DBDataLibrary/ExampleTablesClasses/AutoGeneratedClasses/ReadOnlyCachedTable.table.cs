@@ -14,11 +14,11 @@ namespace DBDataLibrary.Tables
     //  |  ANY CHANGE WILL BE LOST AT THE NEXT GENERATION  |
     //   -------------------------------------------------- 
     //  </auto-generated>
-    [TableName("MFC_CONV_ADVANCEABLE_MOVEMENTS")]
+    [TableName("READ_ONLY_CACHED_TABLE")]
     [GeneratedCode("DbDataClassGenerator", "1.0.0.0")]
-    public partial class MfcConvAdvanceableMovements : ACrudBase<MfcConvAdvanceableMovements>
+    public partial class ReadOnlyCachedTable : ACrudBase<ReadOnlyCachedTable>
     {
-        public MfcConvAdvanceableMovements() : base() { }
+        public ReadOnlyCachedTable() : base() { }
         
         [NonSerialized] private string _cdItem = "";
         [ColumnName("CD_ITEM")]
